@@ -36,16 +36,6 @@ function gameInit(canvas)
                // find the tile at this location
                var tile = board.tiles[event.cellY*60+event.cellX];
                console.log(tile);
-               console.log(getNameForType(tile.etype));
-               // find the object at this location, if one exists
-               for (var i = 0; i < board.objects.length; ++i)
-               {
-                  if (board.objects[i].x == event.cellX &&
-                     board.objects[i].y == event.cellY)
-                  {
-                     console.log(board.objects[i]);
-                  }
-               }
             }
          }
       }
