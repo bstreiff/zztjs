@@ -5,145 +5,179 @@ var ObjectFlags = {
    TEXT : 1
 };
 
-function Empty(status) {}
+//var SpinGlyphs = [ / - \ | ]
+var SpinGunGlyph = [ 27, 24, 26, 25];
+
+function Empty() {}
 Empty.prototype.glyph = 32;
 Empty.prototype.name = "empty";
 
-function Edge(status) {}
+function Edge() {}
 Edge.prototype.glyph = 69;
 Edge.prototype.name = "";
 
-function Player(status) {}
+function Player() {}
 Player.prototype.glyph = 2;
 Player.prototype.name = "player";
 Player.prototype.color = VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE;
 
-function Ammo(status) {}
+function Ammo() {}
 Ammo.prototype.glyph = 132;
 Ammo.prototype.name = "ammo";
 Ammo.prototype.color = VGA.ATTR_FG_CYAN;
 
-function Torch(status) {}
+function Torch() {}
 Torch.prototype.glyph = 157;
 Torch.prototype.name = "torch";
 
-function Gem(status) {}
+function Gem() {}
 Gem.prototype.glyph = 4;
 Gem.prototype.name = "gem";
 
-function Key(status) {}
+function Key() {}
 Key.prototype.glyph = 12;
 Key.prototype.name = "key";
 
-function Door(status) {}
+function Door() {}
 Door.prototype.glyph = 10;
 Door.prototype.name = "door";
 
-function Scroll(status) {}
+function Scroll() {}
 Scroll.prototype.glyph = 232;
 Scroll.prototype.name = "scroll";
 
-function Passage(status) {}
+function Passage() {}
+Passage.prototype.setParams = function(status)
+{
+   this.destinationBoard = status.param3;
+}
 Passage.prototype.glyph = 240;
 Passage.prototype.name = "passage";
 
-function Duplicator(status) {}
+function Duplicator() {}
+Duplicator.prototype.setParams = function(status)
+{
+   this.srcRelX = status.xStep;
+   this.srcRelY = status.yStep;
+   this.rate = status.param2;
+}
 Duplicator.prototype.glyph = 250;
 Duplicator.prototype.name = "duplicator";
 
-function Bomb(status) {}
+function Bomb() {}
 Bomb.prototype.glyph = 11;
 Bomb.prototype.name = "bomb";
 
-function Energizer(status) {}
+function Energizer() {}
 Energizer.prototype.glyph = 127;
 Energizer.prototype.name = "energizer";
 
-function Throwstar(status) {}
+function Throwstar() {}
+Throwstar.prototype.setParams = function(status)
+{
+   this.xStep = status.xStep;
+   this.yStep = status.yStep;
+   this.cycle = status.cycle;
+   this.playerOwned = (status.param1 == 0);
+}
 Throwstar.prototype.glyph = 47;
 Throwstar.prototype.name = "star";
 
-function CWConveyor(status) {}
+function CWConveyor() {}
 CWConveyor.prototype.glyph = 179;
 CWConveyor.prototype.name = "clockwise";
 
-function CCWConveyor(status) {}
+function CCWConveyor() {}
 CCWConveyor.prototype.glyph = 92;
 CCWConveyor.prototype.name = "counter";
 
-function Bullet(status) {}
+function Bullet() {}
+/* Bullets work the same way as stars. */
+Bullet.prototype.setParams = Throwstar.prototype.setParams;
 Bullet.prototype.glyph = 248;
 Bullet.prototype.name = "bullet";
 
-function Water(status) {}
+function Water() {}
 Water.prototype.glyph = 176;
 Water.prototype.name = "water";
 
-function Forest(status) {}
+function Forest() {}
 Forest.prototype.glyph = 176;
 Forest.prototype.name = "forest";
 
-function SolidWall(status) {}
+function SolidWall() {}
 SolidWall.prototype.glyph = 219;
 SolidWall.prototype.name = "solid";
 
-function NormalWall(status) {}
+function NormalWall() {}
 NormalWall.prototype.glyph = 178;
 NormalWall.prototype.name = "normal";
 
-function BreakableWall(status) {}
+function BreakableWall() {}
 BreakableWall.prototype.glyph = 177;
 BreakableWall.prototype.name = "breakable";
 
-function Boulder(status) {}
+function Boulder() {}
 Boulder.prototype.glyph = 254;
 Boulder.prototype.name = "boulder";
 
-function SliderNS(status) {}
+function SliderNS() {}
 SliderNS.prototype.glyph = 18;
 SliderNS.prototype.name = "sliderns";
 
-function SliderEW(status) {}
+function SliderEW() {}
 SliderEW.prototype.glyph = 29;
 SliderEW.prototype.name = "sliderew";
 
-function FakeWall(status) {}
+function FakeWall() {}
 FakeWall.prototype.glyph = 178;
 FakeWall.prototype.name = "fake";
 
-function InvisibleWall(status) {}
+function InvisibleWall() {}
 InvisibleWall.prototype.glyph = 176;
 InvisibleWall.prototype.name = "invisible";
 
-function BlinkWall(status) {}
+function BlinkWall() {}
 BlinkWall.prototype.glyph = 206;
 BlinkWall.prototype.name = "blinkwall";
 
-function Transporter(status) {}
+function Transporter() {}
 Transporter.prototype.glyph = 60;
 Transporter.prototype.name = "transporter";
 
-function Line(status) {}
+function Line() {}
 Line.prototype.glyph = 250;
 Line.prototype.name = "line";
 
-function Ricochet(status) {}
+function Ricochet() {}
 Ricochet.prototype.glyph = 42;
 Ricochet.prototype.name = "ricochet";
 
-function HorizBlinkWallRay(status) {}
+function HorizBlinkWallRay() {}
 HorizBlinkWallRay.prototype.glyph = 205;
 HorizBlinkWallRay.prototype.name = "(horizontal blink wall ray)";
 
-function Bear(status) {}
+function Bear() {}
+Bear.prototype.setParams = function(status)
+{
+   this.cycle = status.cycle;
+   this.sensitivity = status.param1;
+}
 Bear.prototype.glyph = 153;
 Bear.prototype.name = "bear";
 
-function Ruffian(status) {}
+function Ruffian() {}
+Ruffian.prototype.setParams = function(status)
+{
+   this.cycle = status.cycle;
+   this.intelligence = status.param1;
+   this.restTime = status.param2;
+}
 Ruffian.prototype.glyph = 5;
 Ruffian.prototype.name = "ruffian";
 
-function ZObject(status)
+function ZObject() {}
+ZObject.prototype.setParams = function(status)
 {
    this.glyph = status.param1;
    this.code = status.code;
@@ -151,81 +185,96 @@ function ZObject(status)
 ZObject.prototype.glyph = 2;
 ZObject.prototype.name = "object";
 
-function Slime(status) {}
+function Slime() {}
 Slime.prototype.glyph = 42;
 Slime.prototype.name = "slime";
 
-function Shark(status) {}
+function Shark() {}
 Shark.prototype.glyph = 94;
 Shark.prototype.name = "shark";
 
-function SpinningGun(status) {}
+function SpinningGun()
+{
+   this.animIndex = 0;
+}
+SpinningGun.prototype.getParams = function(status)
+{
+   this.cycle = status.cycle;
+   this.intelligence = status.param1;
+   this.fireRate = status.param2 & 0x7F;
+   this.fireStars = ((status.param2 & 0x80) == 0x80);
+}
 SpinningGun.prototype.glyph = 24;
 SpinningGun.prototype.name = "spinninggun";
+SpinningGun.prototype.update = function()
+{
+   this.animIndex++;
+   this.animIndex %= 4;
+   this.glyph = SpinGunGlyph[this.animIndex];
 
-function Pusher(status) {}
+   /* also need to do some shootin' */
+}
+
+function Pusher() {}
 Pusher.prototype.glyph = 31;
 Pusher.prototype.name = "pusher";
 
-function Lion(status) {}
+function Lion() {}
 Lion.prototype.glyph = 234;
 Lion.prototype.name = "lion";
-Lion.prototype.update = function() {
-   this.glyph = Math.floor(Math.random()*256);
-}
 
-function Tiger(status) {}
+function Tiger() {}
 Tiger.prototype.glyph = 227;
 Tiger.prototype.name = "tiger";
 
-function VertBlinkWallRay(status) {}
+function VertBlinkWallRay() {}
 VertBlinkWallRay.prototype.glyph = 186;
 VertBlinkWallRay.prototype.name = "(vertical blink wall ray)";
 
-function CentipedeHead(status) {}
+function CentipedeHead() {}
 CentipedeHead.prototype.glyph = 233;
 CentipedeHead.prototype.name = "head";
 
-function CentipedeBody(status) {}
+function CentipedeBody() {}
 CentipedeBody.prototype.glyph = 79;
 CentipedeBody.prototype.name = "segment";
 
-function BlueText(status) {}
+function BlueText() {}
 BlueText.prototype.name = "(blue text)";
 BlueText.prototype.color = VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE;
 BlueText.prototype.flags = ObjectFlags.TEXT;
 
-function GreenText(status) {}
+function GreenText() {}
 GreenText.prototype.name = "(green text)";
 GreenText.prototype.color = VGA.ATTR_BG_GREEN|VGA.ATTR_FG_WHITE;
 GreenText.prototype.flags = ObjectFlags.TEXT;
 
-function CyanText(status) {}
+function CyanText() {}
 CyanText.prototype.name = "(cyan text)";
 CyanText.prototype.color = VGA.ATTR_BG_CYAN|VGA.ATTR_FG_WHITE;
 CyanText.prototype.flags = ObjectFlags.TEXT;
 
-function RedText(status) {}
+function RedText() {}
 RedText.prototype.name = "(red text)";
 RedText.prototype.color = VGA.ATTR_BG_RED|VGA.ATTR_FG_WHITE;
 RedText.prototype.flags = ObjectFlags.TEXT;
 
-function PurpleText(status) {}
+function PurpleText() {}
 PurpleText.prototype.name = "(purple text)";
 PurpleText.prototype.color = VGA.ATTR_BG_MAGENTA|VGA.ATTR_FG_WHITE;
 PurpleText.prototype.flags = ObjectFlags.TEXT;
 
-function YellowText(status) {}
+function YellowText() {}
 YellowText.prototype.name = "(yellow text)";
 YellowText.prototype.color = VGA.ATTR_BG_BROWN|VGA.ATTR_FG_WHITE;
 YellowText.prototype.flags = ObjectFlags.TEXT;
 
-function WhiteText(status) {}
+function WhiteText() {}
 WhiteText.prototype.name = "(white text)";
 WhiteText.prototype.color = VGA.ATTR_BG_WHITE|VGA.ATTR_FG_WHITE;
 WhiteText.prototype.flags = ObjectFlags.TEXT;
 
-var Objects = [
+var BoardObjects = [
    Empty,
    Edge,
    null, // 02 is unused
@@ -283,54 +332,50 @@ var Objects = [
    null
 ];
 
-function constructObjectFromStatusElement(elementType, color, status)
+function makeBoardObject(boardObjectType, color)
 {
-   if (elementType > Objects.length)
-      console.log("invalid element type");
-
-   if (Objects[elementType] == null)
+   if (boardObjectType < 0 ||
+       boardObjectType > BoardObjects.length ||
+       BoardObjects[boardObjectType] == null)
+   {
+      console.log("invalid board object type " + boardObjectType);
       return null;
+   }
 
-   var obj = new Objects[elementType](status);
-
-   obj.x = status.x;
-   obj.y = status.y;
-   obj.xStep = status.xStep;
-   obj.yStep = status.yStep;
-   obj.cycle = status.cycle;
+   var obj = new BoardObjects[boardObjectType]({});
+   obj.objectTypeID = boardObjectType;
    obj.color = color;
-
    return obj;
 }
 
 function getTileRenderInfo(tile)
 {
-   if (tile.etype > Objects.length)
+   if (tile.objectTypeID > BoardObjects.length)
       console.log("invalid element type");
 
    /* specific check for zero here because town.zzt has some 'empty' cells marked w/color,
       possible editor corruption? */
-   if (Objects[tile.etype] == null || tile.etype == 0)
-      return { glyph: Objects[0].prototype.glyph, color: Objects[0].prototype.color }
+   if (BoardObjects[tile.objectTypeID] == null || tile.objectTypeID == 0)
+      return { glyph: BoardObjects[0].prototype.glyph, color: BoardObjects[0].prototype.color }
 
-   if (Objects[tile.etype].prototype.flags & ObjectFlags.TEXT)
+   if (BoardObjects[tile.objectTypeID].prototype.flags & ObjectFlags.TEXT)
    {
       /* For text, the tile's 'color' is the glyph, and the element type determines the color. */
-      return { glyph: tile.color, color: Objects[tile.etype].prototype.color };
+      return { glyph: tile.color, color: BoardObjects[tile.objectTypeID].prototype.color };
    }
    else
    {
-      return { glyph: Objects[tile.etype].prototype.glyph, color: tile.color }
+      return { glyph: tile.glyph, color: tile.color }
    }
 }
 
-function getNameForType(etype)
+function getNameForType(objectTypeID)
 {
-   if (etype > Objects.length)
+   if (objectTypeID > BoardObjects.length)
       console.log("invalid element type");
 
-   if (Objects[etype] == null)
+   if (BoardObjects[objectTypeID] == null)
       return "(unknown)";
    else
-      return Objects[etype].prototype.name;
+      return BoardObjects[objectTypeID].prototype.name;
 }

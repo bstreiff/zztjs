@@ -80,12 +80,15 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
    var board = {};
    board.name = stream.getFixedPascalString(50);
 
+   board.width = 60;
+   board.height = 25;
+
    var tiles = [];
    /* what follows now is RLE data, encoding 1500 tiles */
-   while (tiles.length < 1500)
+   while (tiles.length < (board.width * board.height))
    {
       var count = stream.getUint8();
-      var etype = stream.getUint8();
+      var typeid = stream.getUint8();
       var color = stream.getUint8();
 
       /* A count of zero actually means 256 tiles. The built-in editor
@@ -93,7 +96,16 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
       if (count == 0) count = 256;
 
       for (var i = 0; i < count; ++i)
-         tiles.push(new Tile(etype, color));
+      {
+         var tileIndex = tiles.length;
+         var obj = makeBoardObject(typeid, color);
+
+         /* TODO: should each object also maintain its own x/y? */
+         /* I feel like that'll complicate things... */
+         obj.x = (tileIndex % board.width);
+         obj.y = Math.floor(tileIndex / board.width);
+         tiles.push(obj);
+      }
    }
    board.tiles = tiles;
 
@@ -123,28 +135,19 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
          statusElement[i].code = this.statusElement[-this.statusElement[i].codeLength].code;
    }
 
+   /* now, inject the information from the status elements into the appropriate tiles. */
+
    /* now turn these into objects */
-   board.objects = [];
    for (var i = 0; i < statusElementCount; ++i)
    {
       /* town.zzt's board 19 contains an element at (-1,-1)? */
       if (statusElement[i].y < 0 || statusElement[i].x < 0)
          continue;
       var tileIndex = statusElement[i].y * 60 + statusElement[i].x;
+      var obj = board.tiles[tileIndex];
 
-      var obj = constructObjectFromStatusElement(
-         board.tiles[tileIndex].etype,
-         board.tiles[tileIndex].color,
-         statusElement[i]);
-
-      if (obj)
-      {
-         board.objects.push(obj);
-      }
-      else
-      {
-         console.log("failure to create object");
-      }
+      if (obj.setParams)
+         obj.setParams(statusElement[i]);
    }
 
    /* jump to next board */
@@ -200,26 +203,17 @@ ZZTWorld.prototype.drawBoard = function(textconsole)
 {
    var board = this.board[game.world.playerBoard];
 
-   for (var i = 0; i < board.objects.length; ++i)
-   {
-      var obj = board.objects[i];
-
-      if (obj.update)
-         obj.update();
-   }
-
    for (var y = 0; y < 25; ++y)
    {
       for (var x = 0; x < 60; ++x)
       {
-         var inf = getTileRenderInfo(board.tiles[y*60+x]);
+         var tile = board.tiles[y*60+x];
+
+         if (tile.update)
+            tile.update();
+
+         var inf = getTileRenderInfo(tile);
          textconsole.set(x, y, inf.glyph, inf.color);
       }
-   }
-
-   for (var i = 0; i < board.objects.length; ++i)
-   {
-      var obj = board.objects[i];
-      textconsole.set(obj.x, obj.y, obj.glyph, obj.color);
    }
 }
