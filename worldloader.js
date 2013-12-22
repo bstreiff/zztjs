@@ -1,14 +1,7 @@
 'use strict';
 
-function Tile(etype, color)
-{
-   this.etype = etype;
-   this.color = color;
-}
-
-function ZZTWorld()
-{
-}
+function ZZTWorld() {}
+function ZZTBoard() {}
 
 function ZZTWorldLoader()
 {
@@ -77,7 +70,7 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
    var boardOffset = stream.position;
    var boardSize = stream.getInt16();
 
-   var board = {};
+   var board = new ZZTBoard;
    board.name = stream.getFixedPascalString(50);
 
    board.width = 60;
@@ -198,22 +191,80 @@ ZZTWorldLoader.prototype.parseStatusElement = function(stream)
    return status;
 }
 
-/* doesn't belong in this class */
-ZZTWorld.prototype.drawBoard = function(textconsole)
+ZZTBoard.prototype.get = function(x, y)
 {
-   var board = this.board[game.world.playerBoard];
+   return this.tiles[y * this.width + x];
+}
 
-   for (var y = 0; y < 25; ++y)
+ZZTBoard.prototype.set = function(x, y, obj)
+{
+  this.tiles[y * this.width + x] = obj;
+}
+
+ZZTBoard.prototype.update = function()
+{
+   var self = this;
+
+   /* Make sure everybody's where they think they are. */
+   for (var y = 0; y < this.height; ++y)
    {
-      for (var x = 0; x < 60; ++x)
+      for (var x = 0; x < this.width; ++x)
       {
-         var tile = board.tiles[y*60+x];
+         var tile = this.get(x, y);
+         if (tile.x != x || tile.y != y)
+         {
+            console.log("object at [" + x + ", " + y +
+               "] thinks it's at [" + tile.x + ", " + y + "], fixing.");
+            tile.x = x;
+            tile.y = y;
+         }
+      }
+   }   
 
-         if (tile.update)
-            tile.update();
+   /* Now, update them. */
+   for (var y = 0; y < this.height; ++y)
+   {
+      for (var x = 0; x < this.width; ++x)
+      {
+         var tile = this.get(x, y);
+
+         if (tile.update && tile.hasUpdated == false)
+         {
+            tile.update(this);
+            tile.hasUpdated = true;
+         }
+      }
+   }
+
+   /* clear the update flag */
+   for (var y = 0; y < this.height; ++y)
+   {
+      for (var x = 0; x < this.width; ++x)
+      {
+         var tile = this.get(x, y);
+         tile.hasUpdated = false;
+      }
+   }
+}
+
+ZZTBoard.prototype.draw = function(textconsole)
+{
+   for (var y = 0; y < this.height; ++y)
+   {
+      for (var x = 0; x < this.width; ++x)
+      {
+         var tile = this.get(x, y);
 
          var inf = getTileRenderInfo(tile);
          textconsole.set(x, y, inf.glyph, inf.color);
       }
    }
+}
+
+/* doesn't belong in this class */
+ZZTWorld.prototype.drawBoard = function(textconsole)
+{
+   var board = this.board[game.world.playerBoard];
+   board.update();
+   board.draw(textconsole);
 }

@@ -1,12 +1,88 @@
 'use strict';
 
-var ObjectFlags = {
+var Direction = Object.freeze({
+   NORTH : 0,
+   SOUTH : 1,
+   EAST : 2,
+   WEST : 3,
+
+   _opposites : [ this.SOUTH, this.NORTH, this.WEST, this.EAST ],
+   _clockwise : [ this.EAST, this.WEST, this.SOUTH, this.NORTH ],
+
+   opposite : function(dir)
+   {
+      return this._opposites[dir];
+   },
+
+   clockwise : function(dir)
+   {
+      return _clockwise[dir];
+   },
+
+   counterClockwise : function(dir)
+   {
+      return this._opposites[_clockwise[dir]];
+   },
+
+   random : function()
+   {
+      return Math.floor(Math.random()*4);
+   }
+});
+
+var ObjectFlags = Object.freeze({
    NONE : 0,
    TEXT : 1
-};
+});
 
-//var SpinGlyphs = [ / - \ | ]
-var SpinGunGlyph = [ 27, 24, 26, 25];
+var SpinGlyph = Object.freeze([ 124, 47, 45, 92 ]);
+var SpinGunGlyph = Object.freeze([ 27, 24, 26, 25 ]);
+
+/* move object 'self' on board 'board' in direction 'dir' */
+function objectMove(board, self, dir)
+{
+   var oldX = self.x;
+   var oldY = self.y;
+   var newX = self.x;
+   var newY = self.y;
+
+   if (dir == Direction.NORTH)
+      --newY;
+   else if (dir == Direction.SOUTH)
+      ++newY;
+   else if (dir == Direction.EAST)
+      ++newX;
+   else if (dir == Direction.WEST)
+      --newX;
+
+   if (newY < 0)
+      newY = 0;
+   else if (newY >= board.height)
+      newY = board.height - 1;
+
+   if (newX < 0)
+      newX = 0;
+   else if (newX >= board.width)
+      newX = board.width - 1;
+
+   if (board.get(newX, newY).name == "empty")
+   {
+      /* If where we're trying to move is an Empty, then just swap. */
+      var tmp = board.get(newX, newY);
+
+      self.x = newX;
+      self.y = newY;
+      board.set(newX, newY, self);
+
+      tmp.x = oldX;
+      tmp.y = oldY;
+      board.set(oldX, oldY, tmp);
+
+      return true;
+   }
+
+   return false;
+}
 
 function Empty() {}
 Empty.prototype.glyph = 32;
@@ -83,13 +159,37 @@ Throwstar.prototype.setParams = function(status)
 Throwstar.prototype.glyph = 47;
 Throwstar.prototype.name = "star";
 
-function CWConveyor() {}
+function CWConveyor()
+{
+   this.animIndex = 0;
+}
 CWConveyor.prototype.glyph = 179;
 CWConveyor.prototype.name = "clockwise";
+CWConveyor.prototype.update = function()
+{
+   this.animIndex++;
+   this.animIndex %= 4;
+   this.glyph = SpinGlyph[this.animIndex];
 
-function CCWConveyor() {}
+   /* also needs to rotate objects */   
+}
+
+function CCWConveyor()
+{
+   this.animIndex = 0;
+}
 CCWConveyor.prototype.glyph = 92;
 CCWConveyor.prototype.name = "counter";
+CCWConveyor.prototype.update = function()
+{
+   if (this.animIndex == 0)
+      this.animIndex = 3;
+   else
+      this.animIndex--;
+   this.glyph = SpinGlyph[this.animIndex];
+
+   /* also needs to rotate objects */
+}
 
 function Bullet() {}
 /* Bullets work the same way as stars. */
@@ -222,6 +322,10 @@ Pusher.prototype.name = "pusher";
 function Lion() {}
 Lion.prototype.glyph = 234;
 Lion.prototype.name = "lion";
+Lion.prototype.update = function(board)
+{
+   objectMove(board, this, Direction.random());
+}
 
 function Tiger() {}
 Tiger.prototype.glyph = 227;
@@ -345,6 +449,7 @@ function makeBoardObject(boardObjectType, color)
    var obj = new BoardObjects[boardObjectType]({});
    obj.objectTypeID = boardObjectType;
    obj.color = color;
+   obj.hasUpdated = false;
    return obj;
 }
 
