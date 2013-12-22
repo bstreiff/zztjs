@@ -75,6 +75,7 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
 
    board.width = 60;
    board.height = 25;
+   board.player = null;
 
    var tiles = [];
    /* what follows now is RLE data, encoding 1500 tiles */
@@ -98,6 +99,11 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
          obj.x = (tileIndex % board.width);
          obj.y = Math.floor(tileIndex / board.width);
          tiles.push(obj);
+
+         if (obj.name == "player" && board.player == null)
+         {
+            board.player = obj;
+         }
       }
    }
    board.tiles = tiles;
@@ -259,12 +265,4 @@ ZZTBoard.prototype.draw = function(textconsole)
          textconsole.set(x, y, inf.glyph, inf.color);
       }
    }
-}
-
-/* doesn't belong in this class */
-ZZTWorld.prototype.drawBoard = function(textconsole)
-{
-   var board = this.board[game.world.playerBoard];
-   board.update();
-   board.draw(textconsole);
 }
