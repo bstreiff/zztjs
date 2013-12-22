@@ -1,10 +1,16 @@
 'use strict';
 
+function getRandomInt(min, max)
+{
+   return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
 var Direction = Object.freeze({
-   NORTH : 0,
-   SOUTH : 1,
-   EAST : 2,
-   WEST : 3,
+   NONE : 0,
+   NORTH : 1,
+   SOUTH : 2,
+   EAST : 3,
+   WEST : 4,
 
    _opposites : [ this.SOUTH, this.NORTH, this.WEST, this.EAST ],
    _clockwise : [ this.EAST, this.WEST, this.SOUTH, this.NORTH ],
@@ -26,7 +32,7 @@ var Direction = Object.freeze({
 
    random : function()
    {
-      return Math.floor(Math.random()*4);
+      return getRandomInt(1, 4);
    }
 });
 
@@ -38,13 +44,15 @@ var ObjectFlags = Object.freeze({
 var SpinGlyph = Object.freeze([ 124, 47, 45, 92 ]);
 var SpinGunGlyph = Object.freeze([ 27, 24, 26, 25 ]);
 
-/* move object 'self' on board 'board' in direction 'dir' */
-function objectMove(board, self, dir)
+var baseObjectMove = function (board, dir)
 {
-   var oldX = self.x;
-   var oldY = self.y;
-   var newX = self.x;
-   var newY = self.y;
+   if (dir == Direction.NONE)
+      return;
+
+   var oldX = this.x;
+   var oldY = this.y;
+   var newX = this.x;
+   var newY = this.y;
 
    if (dir == Direction.NORTH)
       --newY;
@@ -65,23 +73,58 @@ function objectMove(board, self, dir)
    else if (newX >= board.width)
       newX = board.width - 1;
 
-   if (board.get(newX, newY).name == "empty")
+   var that = board.get(newX, newY);
+   if (that.name == "empty")
    {
       /* If where we're trying to move is an Empty, then just swap. */
-      var tmp = board.get(newX, newY);
+      this.x = newX;
+      this.y = newY;
+      board.set(newX, newY, this);
 
-      self.x = newX;
-      self.y = newY;
-      board.set(newX, newY, self);
-
-      tmp.x = oldX;
-      tmp.y = oldY;
+      that.x = oldX;
+      that.y = oldY;
       board.set(oldX, oldY, tmp);
 
       return true;
    }
+   /* else if not empty then it's a little more complicated */
 
    return false;
+}
+
+/* direction from (x1,y1) to (x2, y2) */
+function toward(x1, y1, x2, y2)
+{
+   var dx = x1 - x2;
+   var dy = y1 - y2;
+   var dirx = Direction.NONE;
+   var diry = Direction.NONE;
+
+   if (dx < 0)
+      dirx = Direction.EAST;
+   else if (dx > 0)
+      dirx = Direction.WEST;
+
+   if (dy < 0)
+      diry = Direction.SOUTH;
+   else if (dy > 0)
+      diry = Direction.NORTH;
+
+   /* could stand to be a little more intelligent here... */
+   if (Math.abs(dx) > Math.abs(dy))
+   {
+      if (dirx != Direction.NONE)
+         return dirx;
+      else
+         return diry;
+   }
+   else
+   {
+      if (diry != Direction.NONE)
+         return diry;
+      else
+         return dirx;
+   }
 }
 
 function Empty() {}
@@ -320,11 +363,23 @@ Pusher.prototype.glyph = 31;
 Pusher.prototype.name = "pusher";
 
 function Lion() {}
+Lion.prototype.setParams = function(status)
+{
+   this.cycle = status.cycle;
+   this.intelligence = status.param1;
+}
 Lion.prototype.glyph = 234;
 Lion.prototype.name = "lion";
 Lion.prototype.update = function(board)
 {
-   objectMove(board, this, Direction.random());
+   if (board.player != null && getRandomInt(0,9) < this.intelligence)
+   {
+      this.move(board, toward(this.x, this.y, board.player.x, board.player.y));
+   }
+   else
+   {
+      this.move(board, Direction.random());
+   }
 }
 
 function Tiger() {}
@@ -450,6 +505,10 @@ function makeBoardObject(boardObjectType, color)
    obj.objectTypeID = boardObjectType;
    obj.color = color;
    obj.hasUpdated = false;
+
+   if (!obj.move)
+      obj.move = baseObjectMove;
+
    return obj;
 }
 

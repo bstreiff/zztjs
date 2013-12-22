@@ -7,7 +7,94 @@ window.requestAnimationFrame =
    window.webkitRequestAnimationFrame ||
    window.msRequestAnimationFrame;
 
-var game = {};
+var game = {
+   inputEvent: 0
+};
+
+var ZInputEvent = Object.freeze({
+   USE_TORCH : 1,
+   TOGGLE_SOUND : 2,
+   HELP : 3,
+   SAVE : 4,
+   PAUSE : 5,
+   QUIT : 6,
+   WALK_NORTH : 7,
+   SHOOT_NORTH : 8,
+   WALK_EAST : 9,
+   SHOOT_EAST : 10,
+   WALK_SOUTH : 11,
+   SHOOT_SOUTH : 12,
+   WALK_WEST : 13,
+   SHOOT_WEST : 14
+});
+
+function inGameKeyDown(event)
+{
+   if (event.keyCode == 84) /* "T" */
+   {
+      game.inputEvent = ZInputEvent.USE_TORCH;
+      return true;
+   }
+   else if (event.keyCode == 98) /* "B" */
+   {
+      game.inputEvent = ZInputEvent.TOGGLE_SOUND;
+      return true;
+   }
+   else if (event.keyCode == 72) /* "H" */
+   {
+      game.inputEvent = ZInputEvent.HELP;
+      return true;
+   }
+   else if (event.keyCode == 83) /* "S" */
+   {
+      game.inputEvent = ZInputEvent.SAVE;
+      return true;
+   }
+   else if (event.keyCode == 80) /* "P" */
+   {
+      game.inputEvent = ZInputEvent.PAUSE;
+      return true;
+   }
+   else if (event.keyCode == 81) /* "Q" */
+   {
+      game.inputEvent = ZInputEvent.QUIT;
+      return true;
+   }
+   else if (event.keyCode == 37) /* Left */
+   {
+      if (event.shiftKey)
+         game.inputEvent = ZInputEvent.SHOOT_WEST;
+      else
+         game.inputEvent = ZInputEvent.WALK_WEST;
+      return true;
+   }
+   else if (event.keyCode == 38) /* Up */
+   {
+      if (event.shiftKey)
+         game.inputEvent = ZInputEvent.SHOOT_NORTH;
+      else
+         game.inputEvent = ZInputEvent.WALK_NORTH;
+      return true;
+   }
+   else if (event.keyCode == 39) /* Right */
+   {
+      if (event.shiftKey)
+         game.inputEvent = ZInputEvent.SHOOT_EAST;
+      else
+         game.inputEvent = ZInputEvent.WALK_EAST;
+      return true;
+   }
+   else if (event.keyCode == 40) /* Down */
+   {
+      if (event.shiftKey)
+         game.inputEvent = ZInputEvent.SHOOT_SOUTH;
+      else
+         game.inputEvent = ZInputEvent.WALK_SOUTH;
+      return true;
+   }
+
+   return false;
+}
 
 function gameInit(canvas)
 {
@@ -25,6 +112,8 @@ function gameInit(canvas)
       window.addEventListener("resize", function() {
          game.console.resizeToScreen();
       }, false);
+
+      window.addEventListener("keydown", inGameKeyDown, false);
 
       game.console.onclick = function(event)
       {
@@ -175,11 +264,40 @@ function gameTick()
          // handle timer
       }
 
+      var board = game.world.board[game.world.playerBoard];
+
+      // handle player input, if any.
+      if (game.inputEvent != 0)
+      {
+         if (game.inputEvent == ZInputEvent.WALK_NORTH)
+         {
+            board.player.move(board, Direction.NORTH);
+         }
+         else if (game.inputEvent == ZInputEvent.WALK_SOUTH)
+         {
+            board.player.move(board, Direction.SOUTH);
+         }
+         else if (game.inputEvent == ZInputEvent.WALK_EAST)
+         {
+            board.player.move(board, Direction.EAST);
+         }
+         else if (game.inputEvent == ZInputEvent.WALK_WEST)
+         {
+            board.player.move(board, Direction.WEST);
+         }
+
+         /* clear */
+         game.inputEvent = 0;
+      }
+
       // now, iterate through all objects on the board and update them
+      board.update();
 
+      /* update the status bar */
       drawStatusBar();
-      game.world.drawBoard(game.console);
-
+      /* update the console */
+      board.draw(game.console);
+      /* redraw the whole console */
       game.console.redraw();
    }, 1000 / game.fps);
 }
