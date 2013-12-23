@@ -117,6 +117,7 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
    board.exitEast = stream.getUint8();
    board.restartOnZap = stream.getUint8();
    board.onScreenMessage = stream.getFixedPascalString(58); /* never used? */
+   board.messageTimer = 0;
    board.playerEnterX = stream.getUint8();
    board.playerEnterY = stream.getUint8();
    board.timeLimit = stream.getInt16();
@@ -265,4 +266,26 @@ ZZTBoard.prototype.draw = function(textconsole)
          textconsole.set(x, y, inf.glyph, inf.color);
       }
    }
+
+   if (this.messageTimer > 0)
+   {
+      /* TODO: actually work out how to make this multiline */
+      textconsole.setString(
+         Math.floor((this.width / 2) - (this.onScreenMessage.length / 2)),
+         24,
+         this.onScreenMessage,
+         (this.messageTimer % 6) + VGA.ATTR_FG_BBLUE);
+      --this.messageTimer;
+   }
+}
+
+ZZTBoard.prototype.setMessage = function(msg)
+{
+   /* TODO: actually work out how to make this multiline */
+   if (msg.length >= (this.width - 2))
+   {
+      msg = msg.substr(0, (this.width - 2))
+   }
+   this.onScreenMessage = " " + msg + " ";
+   this.messageTimer = 24;
 }

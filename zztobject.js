@@ -43,6 +43,7 @@ var ObjectFlags = Object.freeze({
 
 var SpinGlyph = Object.freeze([ 124, 47, 45, 92 ]);
 var SpinGunGlyph = Object.freeze([ 27, 24, 26, 25 ]);
+var KeyColors = [ "blue", "green", "cyan", "red", "purple", "yellow", "white" ];
 
 var baseObjectMove = function (board, dir)
 {
@@ -62,6 +63,65 @@ var baseObjectMove = function (board, dir)
       ++newX;
    else if (dir == Direction.WEST)
       --newX;
+
+   // If the player is trying to move off the edge, then we might need to switch
+   // boards...
+   //
+   // TODO: Does this belong here in move()?
+   if (this.name == "player")
+   {
+      var boardSwitch = false;
+      if (newY < 0 && board.exitNorth > 0)
+      {
+         game.world.playerBoard = board.exitNorth;
+         boardSwitch = true;
+      }
+      else if (newY >= board.height && board.exitSouth > 0)
+      {
+         game.world.playerBoard = board.exitSouth;
+         boardSwitch = true;
+      }
+      else if (newX < 0 && board.exitWest > 0)
+      {
+         game.world.playerBoard = board.exitWest;
+         boardSwitch = true;
+      }
+      else if (newX >= board.width && board.exitEast > 0)
+      {
+         game.world.playerBoard = board.exitEast;
+         boardSwitch = true;
+      }
+
+      if (boardSwitch)
+      {
+         /* Correct newX/newY for the fact that we've crossed boards */
+
+         var newBoard = game.world.board[game.world.playerBoard];
+
+         if (newX < 0)
+            newX = newBoard.width - 1;
+         else if (newX >= board.width)
+            newX = 0;
+
+         if (newY < 0)
+            newY = newBoard.height - 1;
+         else if (newY >= board.height)
+            newY = 0;
+
+         /* we need to move the player into position.
+            clear the old player position */
+         var empty = new Empty;
+         empty.x = newBoard.player.x;
+         empty.y = newBoard.player.y;
+         newBoard.set(newBoard.player.x, newBoard.player.y, empty);
+
+         /* put the player at the new position */
+         newBoard.player.x = newX;
+         newBoard.player.y = newY;
+         newBoard.set(newBoard.player.x, newBoard.player.y, newBoard.player);
+         return true;
+      }
+   }
 
    if (newY < 0)
       newY = 0;
@@ -163,7 +223,13 @@ Ammo.prototype.name = "ammo";
 Ammo.prototype.color = VGA.ATTR_FG_CYAN;
 Ammo.prototype.takeItem = function()
 {
-   game.world.playerAmmo += 1;
+   if (!game.world.hasGotAmmoMsg)
+   {
+      game.world.board[game.world.playerBoard].setMessage("Ammunition - 5 shots per container.");
+      game.world.hasGotAmmoMsg = true;
+   }
+
+   game.world.playerAmmo += 5;
    return true;
 }
 
@@ -172,6 +238,12 @@ Torch.prototype.glyph = 157;
 Torch.prototype.name = "torch";
 Torch.prototype.takeItem = function()
 {
+   if (!game.world.hasGotTorchMsg)
+   {
+      game.world.board[game.world.playerBoard].setMessage("Torch - used for lighting in the underground.");
+      game.world.hasGotTorchMsg = true;
+   }
+
    game.world.playerTorches += 1;
    return true;
 }
@@ -181,6 +253,12 @@ Gem.prototype.glyph = 4;
 Gem.prototype.name = "gem";
 Gem.prototype.takeItem = function()
 {
+   if (!game.world.hasGotGemMsg)
+   {
+      game.world.board[game.world.playerBoard].setMessage("Gems give you Health!");
+      game.world.hasGotGemMsg = true;
+   }
+
    game.world.playerGems += 1;
    return true;
 }
@@ -199,12 +277,12 @@ Key.prototype.takeItem = function()
    {
       if (game.world.playerKeys[keyFlag])
       {
-         console.log("player already has this key");
+         game.world.board[game.world.playerBoard].setMessage("You already have a " + KeyColors[keyFlag] + " key!");
          return false;
       }
       else
       {
-         console.log("player got key " + keyFlag);
+         game.world.board[game.world.playerBoard].setMessage("You now have the " + KeyColors[keyFlag] + " key");
          game.world.playerKeys[keyFlag] = true;
          return true;
       }
@@ -230,12 +308,13 @@ Door.prototype.takeItem = function()
    {
       if (game.world.playerKeys[keyFlag])
       {
+         game.world.board[game.world.playerBoard].setMessage("The " + KeyColors[keyFlag] + " door is now open!");
          game.world.playerKeys[keyFlag] = false;
          return true;
       }
       else
       {
-         console.log("player needs key " + keyFlag);
+         game.world.board[game.world.playerBoard].setMessage("The " + KeyColors[keyFlag] + " door is locked.");
          return false;
       }
    }
