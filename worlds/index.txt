@@ -1,6 +1,0 @@
-caves.zzt
-city.zzt
-demo.zzt
-dungeons.zzt
-tour.zzt
-town.zzt

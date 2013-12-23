@@ -1,5 +1,46 @@
 'use strict';
 
+/* parse out key-value pairs from the fragment identifier.
+   http://.../blorp#!abc&def=blah
+
+   The first entry without a '=' is returned as 'world'.
+
+   If the string is empty, returns {world:""}.
+*/
+function parseFragmentParams()
+{
+   var kvs = {};
+
+   /* split on '&' */
+   var str = window.location.hash;
+   var hashes = str.slice(str.indexOf("#!") + 2).split('&');
+
+   for (var i = 0; i < hashes.length; i++)
+   {
+      var hash = hashes[i].split('=');
+
+      if (hash.length > 1)
+      {
+         /* there is a key and there is a value */
+         kvs[hash[0]] = hash[1];
+      }
+      else
+      {
+         /* if we haven't declared 'world', the first entry with no '=' is it. */
+         if (!("world" in kvs))
+         {
+            kvs["world"] = hash[0];
+         }
+         else
+         {
+            kvs[hash[0]] = true;
+         }
+      }
+   }
+
+   return kvs;
+}
+
 /* Yay, browser quirks! */
 window.requestAnimationFrame =
    window.requestAnimationFrame ||
@@ -29,6 +70,24 @@ var ZInputEvent = Object.freeze({
    WALK_WEST : 13,
    SHOOT_WEST : 14
 });
+
+function mainMenuKeyDown(event)
+{
+   if (event.keyCode == 87) /* "W" */
+   {
+      /* select world */
+   }
+   else if (event.keyCode == 80) /* "P" */
+   {
+      /* play game */
+      game.world.currentBoard = game.world.board[game.world.playerBoard];
+      game.atTitleScreen = false;
+   }
+   else if (event.keyCode == 82) /* "R" */
+   {
+      /* restore game, does nothing right now */
+   }
+}
 
 function inGameKeyDown(event)
 {
@@ -100,10 +159,20 @@ function inGameKeyDown(event)
    return false;
 }
 
+function gameKeyDown(event)
+{
+   if (game.atTitleScreen)
+      mainMenuKeyDown(event);
+   else
+      inGameKeyDown(event);
+}
+
 function gameInit(canvas)
 {
    // gotta start somewhere.
    game.console = new TextConsole(canvas, 80, 25);
+
+   var opts = parseFragmentParams();
 
    // Initialize the console.
    game.console.init(function() {
@@ -115,7 +184,7 @@ function gameInit(canvas)
          game.console.resizeToScreen();
       }, false);
 
-      window.addEventListener("keydown", inGameKeyDown, false);
+      window.addEventListener("keydown", gameKeyDown, false);
 
       game.console.onclick = function(event)
       {
@@ -134,7 +203,10 @@ function gameInit(canvas)
 
    game.audio = new ZZTAudio();
 
-   gameLoad("worlds/town.zzt");
+   if (!opts.world)
+      opts.world = "town";
+
+   gameLoad("worlds/" + opts.world + ".zzt");
 }
 
 function gameLoad(url)
@@ -143,6 +215,22 @@ function gameLoad(url)
    var worldLoader = new ZZTWorldLoader();
    worldLoader.init(game.worldurl, function(world) {
       game.world = world;
+      game.world.currentBoard = game.world.board[0];
+
+      /* remove the player from the title screen */
+      if (game.world.currentBoard.player)
+      {
+         var obj = new Empty;
+         obj.x = game.world.currentBoard.player.x;
+         obj.y = game.world.currentBoard.player.y;
+         game.world.currentBoard.set(
+            game.world.currentBoard.player.x,
+            game.world.currentBoard.player.y,
+            obj);
+         game.world.currentBoard.player = null;
+      }
+
+      game.atTitleScreen = true;
       gameTick();
    });
 }
@@ -150,12 +238,24 @@ function gameLoad(url)
 function drawTitleScreenStatusBar()
 {
    game.console.setString(62, 7, " W ", VGA.ATTR_BG_CYAN);
-   game.console.setString(66, 7, "World", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE);
+   game.console.setString(66, 7, "World", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_YELLOW);
+   game.console.setString(69, 8, game.world.worldName, VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE);
 
    game.console.setString(62, 11, " P ", VGA.ATTR_BG_GRAY);
    game.console.setString(66, 11, "Play", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE);
    game.console.setString(62, 12, " R ", VGA.ATTR_BG_CYAN);
-   game.console.setString(66, 12, "Restore game", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE);
+   game.console.setString(66, 12, "Restore game", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_YELLOW);
+
+   game.console.setString(62, 16, " A ", VGA.ATTR_BG_CYAN);
+   game.console.setString(66, 16, "About ZZT!", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE);
+   game.console.setString(62, 17, " H ", VGA.ATTR_BG_GRAY);
+   game.console.setString(66, 17, "High Scores", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_YELLOW);
+   game.console.setString(62, 18, " E ", VGA.ATTR_BG_CYAN);
+   game.console.setString(66, 18, "Board Editor", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_YELLOW);
+
+   game.console.setString(62, 21, " S ", VGA.ATTR_BG_GRAY);
+   game.console.setString(66, 21, "Game speed:", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_YELLOW);
+   game.console.setString(66, 23, "F....:....S", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_YELLOW);
 }
 
 function drawGameStatusBar()
@@ -235,7 +335,7 @@ function drawStatusBar()
    game.console.setString(62, 1, "      ZZT      ", VGA.ATTR_BG_GRAY);
    game.console.setString(62, 2, "   - - - - -   ", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE);
 
-   if (game.world.playerBoard == 0)
+   if (game.atTitleScreen)
       drawTitleScreenStatusBar();
    else
       drawGameStatusBar();
@@ -248,7 +348,7 @@ function gameTick()
       window.requestAnimationFrame(gameTick);
 
       /* if we're actually playing, handle player-related timeouts */
-      if (game.world.playerBoard > 0)
+      if (game.world.currentBoard == game.world.board[0])
       {
          if (game.world.torchCycles > 0)
          {
@@ -269,7 +369,7 @@ function gameTick()
          // handle timer
       }
 
-      var board = game.world.board[game.world.playerBoard];
+      var board = game.world.currentBoard;
 
       // handle player input, if any.
       if (game.inputEvent != 0)
