@@ -230,6 +230,7 @@ Ammo.prototype.takeItem = function()
    }
 
    game.world.playerAmmo += 5;
+   game.audio.play("tcc#d");
    return true;
 }
 
@@ -245,6 +246,7 @@ Torch.prototype.takeItem = function()
    }
 
    game.world.playerTorches += 1;
+   game.audio.play("tcase");
    return true;
 }
 
@@ -260,6 +262,7 @@ Gem.prototype.takeItem = function()
    }
 
    game.world.playerGems += 1;
+   game.audio.play("t+c-gec");
    return true;
 }
 
@@ -278,11 +281,13 @@ Key.prototype.takeItem = function()
       if (game.world.playerKeys[keyFlag])
       {
          game.world.board[game.world.playerBoard].setMessage("You already have a " + KeyColors[keyFlag] + " key!");
+         game.audio.play("sc-c");
          return false;
       }
       else
       {
          game.world.board[game.world.playerBoard].setMessage("You now have the " + KeyColors[keyFlag] + " key");
+         game.audio.play("t+cegcegceg+sc");
          game.world.playerKeys[keyFlag] = true;
          return true;
       }
@@ -309,12 +314,14 @@ Door.prototype.takeItem = function()
       if (game.world.playerKeys[keyFlag])
       {
          game.world.board[game.world.playerBoard].setMessage("The " + KeyColors[keyFlag] + " door is now open!");
+         game.audio.play("tcgbcgb+ic");
          game.world.playerKeys[keyFlag] = false;
          return true;
       }
       else
       {
          game.world.board[game.world.playerBoard].setMessage("The " + KeyColors[keyFlag] + " door is locked.");
+         game.audio.play("t--gc");
          return false;
       }
    }
