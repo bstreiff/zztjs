@@ -9,7 +9,9 @@ window.requestAnimationFrame =
 
 var game = {
    inputEvent: 0,
-   quiet: false
+   quiet: false,
+   fps: 9.1032548384,
+   debug: true
 };
 
 var ZInputEvent = Object.freeze({
@@ -100,9 +102,7 @@ function inGameKeyDown(event)
 function gameInit(canvas)
 {
    // gotta start somewhere.
-   game.fps = 10;
    game.console = new TextConsole(canvas, 80, 25);
-   game.debug = true;
 
    // Initialize the console.
    game.console.init(function() {

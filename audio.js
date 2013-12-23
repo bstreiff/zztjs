@@ -1,5 +1,17 @@
 'use strict';
 
+/*
+
+http://zzt.org/fora/viewtopic.php?f=18&t=3345&start=15#p65718
+At #cycle 1, a sixteenth note has the length of 1 idle.
+
+
+http://zzt.org/fora/viewtopic.php?f=9&t=3124&p=62791&hilit=cycle+game+speed#p62791
+
+So i guess ZZT's frame rate ought to be 9.1032548384 frames/sec. Though I can think
+of advantages with picking 10 frames/sec (ideal numbers vs. subtle familiarity of speed).
+*/
+
 function ZZTAudio()
 {
    try
@@ -41,7 +53,6 @@ ZZTAudio.prototype.play = function(str)
 
    if (this.oscillator)
    {
-      this.oscillator.stop(0);
       this.oscillator.disconnect();
    }
    this.oscillator = this.context.createOscillator();
@@ -66,12 +77,14 @@ ZZTAudio.prototype.play = function(str)
          case "b": note = (octave * 12) + 11; break;
          case "+": octave++; break;
          case "-": octave--; break;
-         case "t": noteDuration = 32; break;
-         case "s": noteDuration = 16; break;
-         case "i": noteDuration = 8; break;
-         case "q": noteDuration = 4; break;
-         case "h": noteDuration = 2; break;
-         case "w": noteDuration = 1; break;
+
+         /* Duration here is given in terms of division of a cycle. */
+         case "t": noteDuration = 32; break; /* 1/32th note */
+         case "s": noteDuration = 16; break; /* 1/16th note */
+         case "i": noteDuration = 8; break;  /* 1/8th note */
+         case "q": noteDuration = 4; break;  /* 1/4th note */
+         case "h": noteDuration = 2; break;  /* 1/2th note */
+         case "w": noteDuration = 1; break;  /* whole note */
          case "3": noteDuration /= 3; break;
          case "x": note = 0; break;
          default: break;
@@ -88,11 +101,12 @@ ZZTAudio.prototype.play = function(str)
 
       if (note >= 0)
       {
-        var frequency = this.NOTES[note];
-        var noteTime = (frequency * 2.0 / noteDuration) / 200;
+         var frequency = this.NOTES[note];
+         /* A sixteenth note has the duration of one cycle. */
+         var noteTime = (1 / noteDuration) * (16 / game.fps);
 
-        this.oscillator.frequency.setValueAtTime(frequency, this.context.currentTime + streamTime);
-        streamTime += noteTime;
+         this.oscillator.frequency.setValueAtTime(frequency, this.context.currentTime + streamTime);
+         streamTime += noteTime;
       }
    }
 
