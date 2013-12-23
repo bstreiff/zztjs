@@ -71,24 +71,25 @@ var baseObjectMove = function (board, dir)
    if (this.name == "player")
    {
       var boardSwitch = false;
+      var newBoardID = 0;
       if (newY < 0 && board.exitNorth > 0)
       {
-         game.world.playerBoard = board.exitNorth;
+         newBoardID = board.exitNorth;
          boardSwitch = true;
       }
       else if (newY >= board.height && board.exitSouth > 0)
       {
-         game.world.playerBoard = board.exitSouth;
+         newBoardID = board.exitSouth;
          boardSwitch = true;
       }
       else if (newX < 0 && board.exitWest > 0)
       {
-         game.world.playerBoard = board.exitWest;
+         newBoardID = board.exitWest;
          boardSwitch = true;
       }
       else if (newX >= board.width && board.exitEast > 0)
       {
-         game.world.playerBoard = board.exitEast;
+         newBoardID = board.exitEast;
          boardSwitch = true;
       }
 
@@ -96,7 +97,7 @@ var baseObjectMove = function (board, dir)
       {
          /* Correct newX/newY for the fact that we've crossed boards */
 
-         var newBoard = game.world.board[game.world.playerBoard];
+         var newBoard = game.world.board[newBoardID];
 
          if (newX < 0)
             newX = newBoard.width - 1;
@@ -119,6 +120,11 @@ var baseObjectMove = function (board, dir)
          newBoard.player.x = newX;
          newBoard.player.y = newY;
          newBoard.set(newBoard.player.x, newBoard.player.y, newBoard.player);
+
+         /* make this the new current board */
+         game.world.playerBoard = newBoardID;
+         game.world.currentBoard = newBoard;
+
          return true;
       }
    }
@@ -225,7 +231,7 @@ Ammo.prototype.takeItem = function()
 {
    if (!game.world.hasGotAmmoMsg)
    {
-      game.world.board[game.world.playerBoard].setMessage("Ammunition - 5 shots per container.");
+      game.world.currentBoard.setMessage("Ammunition - 5 shots per container.");
       game.world.hasGotAmmoMsg = true;
    }
 
@@ -241,7 +247,7 @@ Torch.prototype.takeItem = function()
 {
    if (!game.world.hasGotTorchMsg)
    {
-      game.world.board[game.world.playerBoard].setMessage("Torch - used for lighting in the underground.");
+      game.world.currentBoard.setMessage("Torch - used for lighting in the underground.");
       game.world.hasGotTorchMsg = true;
    }
 
@@ -257,7 +263,7 @@ Gem.prototype.takeItem = function()
 {
    if (!game.world.hasGotGemMsg)
    {
-      game.world.board[game.world.playerBoard].setMessage("Gems give you Health!");
+      game.world.currentBoard.setMessage("Gems give you Health!");
       game.world.hasGotGemMsg = true;
    }
 
@@ -280,13 +286,13 @@ Key.prototype.takeItem = function()
    {
       if (game.world.playerKeys[keyFlag])
       {
-         game.world.board[game.world.playerBoard].setMessage("You already have a " + KeyColors[keyFlag] + " key!");
+         game.world.currentBoard.setMessage("You already have a " + KeyColors[keyFlag] + " key!");
          game.audio.play("sc-c");
          return false;
       }
       else
       {
-         game.world.board[game.world.playerBoard].setMessage("You now have the " + KeyColors[keyFlag] + " key");
+         game.world.currentBoard.setMessage("You now have the " + KeyColors[keyFlag] + " key");
          game.audio.play("t+cegcegceg+sc");
          game.world.playerKeys[keyFlag] = true;
          return true;
@@ -313,14 +319,14 @@ Door.prototype.takeItem = function()
    {
       if (game.world.playerKeys[keyFlag])
       {
-         game.world.board[game.world.playerBoard].setMessage("The " + KeyColors[keyFlag] + " door is now open!");
+         game.world.currentBoard.setMessage("The " + KeyColors[keyFlag] + " door is now open!");
          game.audio.play("tcgbcgb+ic");
          game.world.playerKeys[keyFlag] = false;
          return true;
       }
       else
       {
-         game.world.board[game.world.playerBoard].setMessage("The " + KeyColors[keyFlag] + " door is locked.");
+         game.world.currentBoard.setMessage("The " + KeyColors[keyFlag] + " door is locked.");
          game.audio.play("t--gc");
          return false;
       }

@@ -107,6 +107,7 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
       }
    }
    board.tiles = tiles;
+   board.tilesBelow = new Array(tiles.length);
 
    /* following the RLE data, we then have... */
    board.maxPlayerShots = stream.getUint8();
@@ -148,6 +149,15 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
 
       if (obj.setParams)
          obj.setParams(statusElement[i]);
+
+      /* handle all the 'below' layers too */
+      if (status.underType)
+      {
+         var underObj = makeBoardObject(status.underType, status.underColor);
+         underObj.x = statusElement[i].x;
+         underObj.y = statusElement[i].y;
+         board.tilesBelow[tileIndex] = underObj;
+      }
    }
 
    /* jump to next board */
