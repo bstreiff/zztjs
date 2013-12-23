@@ -4,5 +4,5 @@
 { file: "demo.zzt", shortname: "DEMO", name: "Demo of the ZZT World Editor" },
 { file: "dungeons.zzt", shortname: "DUNGEONS", name: "The Dungeons of ZZT" },
 { file: "tour.zzt", shortname: "TOUR", name: "Guided Tour ZZT's Other Worlds" },
-{ file: "town.zzt", shortname: "TOWN", name "The Town of ZZT" }
+{ file: "town.zzt", shortname: "TOWN", name: "The Town of ZZT" }
 ]
