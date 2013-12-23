@@ -8,7 +8,8 @@ window.requestAnimationFrame =
    window.msRequestAnimationFrame;
 
 var game = {
-   inputEvent: 0
+   inputEvent: 0,
+   quiet: false
 };
 
 var ZInputEvent = Object.freeze({

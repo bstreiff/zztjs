@@ -2,6 +2,17 @@
 
 function ZZTAudio()
 {
+   try
+   {
+      window.AudioContext = window.AudioContext || window.webkitAudioContext;
+      this.context = new AudioContext();
+   }
+   catch(e)
+   {
+      console.log("no audio context for you. :(");
+      console.log(e);
+      return;
+   }
 }
 
 ZZTAudio.prototype.SFX_TORCH_DEAD = "tc-c-c";
@@ -22,25 +33,22 @@ ZZTAudio.prototype.NOTES = function()
 
 ZZTAudio.prototype.play = function(str)
 {
+   if (game.quiet)
+      return;
+
    var octave = 5;
    var noteDuration = 32;
 
-   var context;
-   try
+   if (this.oscillator)
    {
-      window.AudioContext = window.AudioContext || window.webkitAudioContext;
-      context = new AudioContext();
+      this.oscillator.stop(0);
+      this.oscillator.disconnect();
    }
-   catch(e)
-   {
-      console.log("no audio context for you. :(");
-   }
+   this.oscillator = this.context.createOscillator();
+   this.oscillator.type = "square"; 
+   this.oscillator.connect(this.context.destination);
 
-   var source = context.createOscillator();
-
-   source.type = "square"; 
-
-   var streamTime = 0.0;
+   var streamTime = 0;
    for (var i = 0; i < str.length; ++i)
    {
       var ch = str.charAt(i);
@@ -81,15 +89,13 @@ ZZTAudio.prototype.play = function(str)
       if (note >= 0)
       {
         var frequency = this.NOTES[note];
-        var noteTime = (frequency * 2.0 / noteDuration) / 300;
+        var noteTime = (frequency * 2.0 / noteDuration) / 200;
 
-        console.log("set frequency " + frequency + " at " + streamTime);
-        source.frequency.setValueAtTime(frequency, streamTime);
+        this.oscillator.frequency.setValueAtTime(frequency, this.context.currentTime + streamTime);
         streamTime += noteTime;
       }
    }
 
-   source.connect(context.destination);
-   source.start(0);
-   source.stop(streamTime);
+   this.oscillator.start(this.context.currentTime, 0, streamTime);
+   this.oscillator.stop(this.context.currentTime + streamTime);
 }
