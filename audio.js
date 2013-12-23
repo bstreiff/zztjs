@@ -18,6 +18,8 @@ function ZZTAudio()
    {
       window.AudioContext = window.AudioContext || window.webkitAudioContext;
       this.context = new AudioContext();
+      this.gain = this.context.createGain();
+      this.gain.gain.value = 0.5;
    }
    catch(e)
    {
@@ -43,6 +45,12 @@ ZZTAudio.prototype.NOTES = function()
    return notes;
 }();
 
+ZZTAudio.prototype.setVolume = function(val)
+{
+   if (this.gain)
+      this.gain.gain.value = val;
+}
+
 ZZTAudio.prototype.play = function(str)
 {
    if (game.quiet)
@@ -60,7 +68,8 @@ ZZTAudio.prototype.play = function(str)
    }
    this.oscillator = this.context.createOscillator();
    this.oscillator.type = "square"; 
-   this.oscillator.connect(this.context.destination);
+   this.oscillator.connect(this.gain);
+   this.gain.connect(this.context.destination);
 
    var streamTime = 0;
    for (var i = 0; i < str.length; ++i)
