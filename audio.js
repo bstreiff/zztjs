@@ -48,6 +48,9 @@ ZZTAudio.prototype.play = function(str)
    if (game.quiet)
       return;
 
+   if (!this.context)
+      return;
+
    var octave = 5;
    var noteDuration = 32;
 

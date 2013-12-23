@@ -16,7 +16,6 @@ var game = {
 
 var ZInputEvent = Object.freeze({
    USE_TORCH : 1,
-   TOGGLE_SOUND : 2,
    HELP : 3,
    SAVE : 4,
    PAUSE : 5,
@@ -38,9 +37,11 @@ function inGameKeyDown(event)
       game.inputEvent = ZInputEvent.USE_TORCH;
       return true;
    }
-   else if (event.keyCode == 98) /* "B" */
+   else if (event.keyCode == 66) /* "B" */
    {
-      game.inputEvent = ZInputEvent.TOGGLE_SOUND;
+      /* toggling sound doesn't alter the game state at all, so
+         lets just do it immediately */
+      game.quiet = !game.quiet;
       return true;
    }
    else if (event.keyCode == 72) /* "H" */
@@ -193,7 +194,10 @@ function drawGameStatusBar()
    game.console.setString(62, 14, " T ", VGA.ATTR_BG_GRAY);
    game.console.setString(66, 14, "Torch", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE);
    game.console.setString(62, 15, " B ", VGA.ATTR_BG_CYAN);
-   game.console.setString(66, 15, "Be quiet", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE);
+   if (game.quiet)
+      game.console.setString(66, 15, "Be noisy", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE);
+   else
+      game.console.setString(66, 15, "Be quiet", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE);
    game.console.setString(62, 16, " H ", VGA.ATTR_BG_GRAY);
    game.console.setString(66, 16, "Help", VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE);
 
