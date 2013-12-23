@@ -83,11 +83,28 @@ var baseObjectMove = function (board, dir)
 
       that.x = oldX;
       that.y = oldY;
-      board.set(oldX, oldY, tmp);
+      board.set(oldX, oldY, that);
 
       return true;
    }
    /* else if not empty then it's a little more complicated */
+   else
+   {
+      /* if we're the player, and we're touching an item, and that item can be taken,
+         then we take it. */
+      if (this.name == "player" && that.takeItem && that.takeItem())
+      {
+         this.x = newX;
+         this.y = newY;
+         board.set(newX, newY, this);
+
+         /* Where the player used to be, put an Empty. */
+         that = new Empty;
+         that.x = oldX;
+         that.y = oldY;
+         board.set(oldX, oldY, that);
+      }
+   }
 
    return false;
 }
@@ -144,22 +161,87 @@ function Ammo() {}
 Ammo.prototype.glyph = 132;
 Ammo.prototype.name = "ammo";
 Ammo.prototype.color = VGA.ATTR_FG_CYAN;
+Ammo.prototype.takeItem = function()
+{
+   game.world.playerAmmo += 1;
+   return true;
+}
 
 function Torch() {}
 Torch.prototype.glyph = 157;
 Torch.prototype.name = "torch";
+Torch.prototype.takeItem = function()
+{
+   game.world.playerTorches += 1;
+   return true;
+}
 
 function Gem() {}
 Gem.prototype.glyph = 4;
 Gem.prototype.name = "gem";
+Gem.prototype.takeItem = function()
+{
+   game.world.playerGems += 1;
+   return true;
+}
 
 function Key() {}
 Key.prototype.glyph = 12;
 Key.prototype.name = "key";
+Key.prototype.takeItem = function()
+{
+   var keyFlag = (this.color & 0x07) - 1;
+   if (keyFlag < 0 || keyFlag > 6)
+   {
+      console.log("this key's an invalid color!");
+   }
+   else
+   {
+      if (game.world.playerKeys[keyFlag])
+      {
+         console.log("player already has this key");
+         return false;
+      }
+      else
+      {
+         console.log("player got key " + keyFlag);
+         game.world.playerKeys[keyFlag] = true;
+         return true;
+      }
+   }
+
+   return false;
+}
 
 function Door() {}
 Door.prototype.glyph = 10;
 Door.prototype.name = "door";
+Door.prototype.takeItem = function()
+{
+   /* A door isn't really an 'item' per se but works similarly--
+      it needs to disappear when the player walks over it, if they
+      have the key. */
+   var keyFlag = ((this.color & 0x70) >> 4) - 1;
+   if (keyFlag < 0 || keyFlag > 6)
+   {
+      console.log("this door's an invalid color!");
+   }
+   else
+   {
+      if (game.world.playerKeys[keyFlag])
+      {
+         game.world.playerKeys[keyFlag] = false;
+         return true;
+      }
+      else
+      {
+         console.log("player needs key " + keyFlag);
+         return false;
+      }
+   }
+
+   return false;
+}
 
 function Scroll() {}
 Scroll.prototype.glyph = 232;
