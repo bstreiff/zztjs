@@ -52,7 +52,8 @@ var game = {
    inputEvent: 0,
    quiet: false,
    fps: 9.1032548384,
-   debug: true
+   debug: true,
+   dialog: null
 };
 
 var ZInputEvent = Object.freeze({
@@ -161,7 +162,9 @@ function inGameKeyDown(event)
 
 function gameKeyDown(event)
 {
-   if (game.atTitleScreen)
+   if (game.dialog)
+      game.dialog.keydown(event);
+   else if (game.atTitleScreen)
       mainMenuKeyDown(event);
    else
       inGameKeyDown(event);
@@ -229,6 +232,8 @@ function gameLoad(url)
             obj);
          game.world.currentBoard.player = null;
       }
+
+      game.dialog = null;
 
       game.atTitleScreen = true;
       gameTick();
@@ -347,6 +352,11 @@ function gameTick()
       /* queue up the next tick */
       window.requestAnimationFrame(gameTick);
 
+      if (game.dialog && game.dialog.done)
+      {
+         game.dialog = null;
+      }
+
       /* if we're actually playing, handle player-related timeouts */
       if (game.world.currentBoard == game.world.board[0])
       {
@@ -402,6 +412,10 @@ function gameTick()
       drawStatusBar();
       /* update the console */
       board.draw(game.console);
+
+      if (game.dialog)
+         game.dialog.draw(game.console);
+
       /* redraw the whole console */
       game.console.redraw();
    }, 1000 / game.fps);
