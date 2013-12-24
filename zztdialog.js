@@ -83,11 +83,11 @@ ZZTDialog.prototype.keydown = function(event)
    }
    else if (event.keyCode == 13) /* enter */
    {
-      this.done = { line: this.selectedLine };
+      this.done = { dialog: this, line: this.selectedLine };
    }
    else if (event.keyCode == 27) /* escape */
    {
-      this.done = { cancelled: true };
+      this.done = { dialog: this, cancelled: true };
    }
 }
 

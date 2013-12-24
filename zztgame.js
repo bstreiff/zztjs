@@ -72,11 +72,54 @@ var ZInputEvent = Object.freeze({
    SHOOT_WEST : 14
 });
 
+function getWorldList(callback)
+{
+   var request = new XMLHttpRequest();
+   request.open("GET", "worlds/index.json", true);
+   request.onload = function(e)
+   {
+      var worlds = {};
+      if (this.status == 200)
+      {
+         console.log(this.response);
+         var resp = JSON.parse(this.response);
+         worlds = resp.worlds;
+      }
+      callback(worlds);
+   }
+   request.send();
+}
+
 function mainMenuKeyDown(event)
 {
    if (event.keyCode == 87) /* "W" */
    {
       /* select world */
+      getWorldList(function(worlds) {
+         var entries = [];
+         var filenames = [];
+         for (var i = 0; i < worlds.length; ++i)
+         {
+            entries.push(worlds[i].shortname);
+            filenames.push(worlds[i].file);
+         }
+         entries.push("Exit");
+         filenames.push(null);
+         game.dialog = new ZZTDialog("ZZT Worlds", entries);
+         game.dialog.filenames = filenames;
+
+         game.dialog.callback = function(ev)
+         {
+            if (!ev.cancelled && ev.dialog.filenames[ev.line])
+            {
+               var filename = ev.dialog.filenames[ev.line];
+               window.location.hash = "#!" + filename;
+               gameLoad("worlds/" + filename);
+               return true;
+            }
+            return false;
+         }
+      });
    }
    else if (event.keyCode == 80) /* "P" */
    {
@@ -207,9 +250,29 @@ function gameInit(canvas)
    game.audio = new ZZTAudio();
 
    if (!opts.world)
-      opts.world = "town";
+      opts.world = "town.zzt";
 
-   gameLoad("worlds/" + opts.world + ".zzt");
+   gameLoad("worlds/" + opts.world);
+}
+
+function goToTitleScreen()
+{
+   game.world.currentBoard = game.world.board[0];
+
+   /* remove the player from the title screen */
+   if (game.world.currentBoard.player)
+   {
+      var obj = new Empty;
+      obj.x = game.world.currentBoard.player.x;
+      obj.y = game.world.currentBoard.player.y;
+      game.world.currentBoard.set(
+         game.world.currentBoard.player.x,
+         game.world.currentBoard.player.y,
+         obj);
+      game.world.currentBoard.player = null;
+   }
+
+   game.atTitleScreen = true;
 }
 
 function gameLoad(url)
@@ -218,24 +281,8 @@ function gameLoad(url)
    var worldLoader = new ZZTWorldLoader();
    worldLoader.init(game.worldurl, function(world) {
       game.world = world;
-      game.world.currentBoard = game.world.board[0];
-
-      /* remove the player from the title screen */
-      if (game.world.currentBoard.player)
-      {
-         var obj = new Empty;
-         obj.x = game.world.currentBoard.player.x;
-         obj.y = game.world.currentBoard.player.y;
-         game.world.currentBoard.set(
-            game.world.currentBoard.player.x,
-            game.world.currentBoard.player.y,
-            obj);
-         game.world.currentBoard.player = null;
-      }
-
       game.dialog = null;
-
-      game.atTitleScreen = true;
+      goToTitleScreen();
       gameTick();
    });
 }
@@ -349,13 +396,21 @@ function drawStatusBar()
 function gameTick()
 {
    setTimeout(function() {
-      /* queue up the next tick */
-      window.requestAnimationFrame(gameTick);
-
       if (game.dialog && game.dialog.done)
       {
+         /* If the dialog is done, we're doing to dismiss it. */
+         /* However, we do want to execute the callback. */
+         var dialog = game.dialog;
          game.dialog = null;
+         if (dialog.callback)
+         {
+            if (dialog.callback(dialog.done))
+               return;
+         }
       }
+
+      /* queue up the next tick */
+      window.requestAnimationFrame(gameTick);
 
       /* if we're actually playing, handle player-related timeouts */
       if (game.world.currentBoard == game.world.board[0])
@@ -399,6 +454,12 @@ function gameTick()
          else if (game.inputEvent == ZInputEvent.WALK_WEST)
          {
             board.player.move(board, Direction.WEST);
+         }
+         else if (game.inputEvent == ZInputEvent.QUIT)
+         {
+            /* TODO: should prompt...
+               also should probably reload the .zzt file? */
+            goToTitleScreen();
          }
 
          /* clear */

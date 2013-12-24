@@ -1,8 +1,8 @@
-[
-{ file: "caves.zzt", shortname: "CAVES", name: "The Caves of ZZT" },
-{ file: "city.zzt", shortname: "CITY", name: "Underground City of ZZT" },
-{ file: "demo.zzt", shortname: "DEMO", name: "Demo of the ZZT World Editor" },
-{ file: "dungeons.zzt", shortname: "DUNGEONS", name: "The Dungeons of ZZT" },
-{ file: "tour.zzt", shortname: "TOUR", name: "Guided Tour ZZT's Other Worlds" },
-{ file: "town.zzt", shortname: "TOWN", name: "The Town of ZZT" }
-]
+{ "worlds": [
+{ "file": "caves.zzt", "shortname": "CAVES", "name": "The Caves of ZZT" },
+{ "file": "city.zzt", "shortname": "CITY", "name": "Underground City of ZZT" },
+{ "file": "demo.zzt", "shortname": "DEMO", "name": "Demo of the ZZT World Editor" },
+{ "file": "dungeons.zzt", "shortname": "DUNGEONS", "name": "The Dungeons of ZZT" },
+{ "file": "tour.zzt", "shortname": "TOUR", "name": "Guided Tour ZZT's Other Worlds" },
+{ "file": "town.zzt", "shortname": "TOWN", "name": "The Town of ZZT" }
+]}
