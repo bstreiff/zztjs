@@ -160,6 +160,9 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
       }
    }
 
+   /* update all the line characters */
+   board.updateLines();
+
    /* jump to next board */
    stream.position = boardOffset + boardSize + 2;
 
@@ -298,4 +301,57 @@ ZZTBoard.prototype.setMessage = function(msg)
    }
    this.onScreenMessage = " " + msg + " ";
    this.messageTimer = 24;
+}
+
+var _ZZTBoard_LineGlyphs =
+[
+   /* NESW */
+   /* 0000 */ 249,
+   /* 0001 */ 181,
+   /* 0010 */ 210,
+   /* 0011 */ 187,
+   /* 0100 */ 198,
+   /* 0101 */ 205,
+   /* 0110 */ 201,
+   /* 0111 */ 203,
+   /* 1000 */ 208,
+   /* 1001 */ 188,
+   /* 1010 */ 186,
+   /* 1011 */ 185,
+   /* 1100 */ 200,
+   /* 1101 */ 202,
+   /* 1110 */ 204,
+   /* 1111 */ 206
+];
+
+/* Update the glyphs of all line characters on the board.
+
+   We only need to do this whenever one of them changes. */
+ZZTBoard.prototype.updateLines = function()
+{
+   for (var y = 0; y < this.height; ++y)
+   {
+      for (var x = 0; x < this.width; ++x)
+      {
+         var tile = this.get(x, y);
+         if (tile.name == "line")
+         {
+            var glyphIndex = 0;
+
+            if ((y == 0) || (this.get(x, y-1).name == "line"))
+               glyphIndex += 8;
+
+            if ((x == this.width-1) || (this.get(x+1, y).name == "line"))
+               glyphIndex += 4;
+
+            if ((y == this.height-1) || (this.get(x, y+1).name == "line"))
+               glyphIndex += 2;
+
+            if ((x == 0) || (this.get(x-1, y).name == "line"))
+               glyphIndex += 1;
+
+            tile.glyph = _ZZTBoard_LineGlyphs[glyphIndex];
+         }
+      }
+   }
 }
