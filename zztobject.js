@@ -43,7 +43,7 @@ var ObjectFlags = Object.freeze({
 
 var SpinGlyph = Object.freeze([ 124, 47, 45, 92 ]);
 var SpinGunGlyph = Object.freeze([ 27, 24, 26, 25 ]);
-var KeyColors = [ "blue", "green", "cyan", "red", "purple", "yellow", "white" ];
+var KeyColors = [ "black", "blue", "green", "cyan", "red", "purple", "yellow", "white" ];
 
 var baseObjectMove = function (board, dir)
 {
@@ -268,6 +268,8 @@ Gem.prototype.takeItem = function()
    }
 
    game.world.playerGems += 1;
+   game.world.playerHealth += 1;
+   game.world.playerScore += 10;
    game.audio.play("t+c-gec");
    return true;
 }
@@ -277,29 +279,43 @@ Key.prototype.glyph = 12;
 Key.prototype.name = "key";
 Key.prototype.takeItem = function()
 {
-   var keyFlag = (this.color & 0x07) - 1;
-   if (keyFlag < 0 || keyFlag > 6)
+   var keyColor = (this.color & 0x07);
+   var couldGiveKey = false;
+   if (keyColor == 0)
    {
-      console.log("this key's an invalid color!");
+      /* The 'black' key is weird. Black keys are technically
+         invalid, and overwrite the space in the player info
+         just before the keys, which happens to give the player
+         256 gems instead. */
+      game.world.playerGems += 256;
+      couldGiveKey = true;
+   }
+   else if (keyColor > 0 && keyColor <= 7)
+   {
+      if (!game.world.playerKeys[keyColor-1])
+      {
+         couldGiveKey = true;
+         game.world.playerKeys[keyColor-1] = true;
+      }
    }
    else
    {
-      if (game.world.playerKeys[keyFlag])
-      {
-         game.world.currentBoard.setMessage("You already have a " + KeyColors[keyFlag] + " key!");
-         game.audio.play("sc-c");
-         return false;
-      }
-      else
-      {
-         game.world.currentBoard.setMessage("You now have the " + KeyColors[keyFlag] + " key");
-         game.audio.play("t+cegcegceg+sc");
-         game.world.playerKeys[keyFlag] = true;
-         return true;
-      }
+      console.log("this key's an invalid color!");
+      return false;
    }
 
-   return false;
+   if (!couldGiveKey)
+   {   
+      game.world.currentBoard.setMessage("You already have a " + KeyColors[keyColor] + " key!");
+      game.audio.play("sc-c");
+      return false;
+   }
+   else
+   {
+      game.world.currentBoard.setMessage("You now have the " + KeyColors[keyColor] + " key");
+      game.audio.play("t+cegcegceg+sc");
+      return true;
+   }
 }
 
 function Door() {}
@@ -310,29 +326,43 @@ Door.prototype.takeItem = function()
    /* A door isn't really an 'item' per se but works similarly--
       it needs to disappear when the player walks over it, if they
       have the key. */
-   var keyFlag = ((this.color & 0x70) >> 4) - 1;
-   if (keyFlag < 0 || keyFlag > 6)
+   var keyColor = ((this.color & 0x70) >> 4);
+   var doorUnlocked = false;
+   if (keyColor == 0)
    {
-      console.log("this door's an invalid color!");
+      /* Black doors, like black keys, are weird. */
+      if (game.world.playerGems >= 256)
+      {
+         game.world.playerGems -= 256;
+         doorUnlocked = true;
+      }
+   }
+   else if (keyColor > 0 && keyColor <= 7)
+   {
+      if (game.world.playerKeys[keyColor-1])
+      {
+         game.world.playerKeys[keyColor-1] = false;
+         doorUnlocked = true;
+      }
    }
    else
    {
-      if (game.world.playerKeys[keyFlag])
-      {
-         game.world.currentBoard.setMessage("The " + KeyColors[keyFlag] + " door is now open!");
-         game.audio.play("tcgbcgb+ic");
-         game.world.playerKeys[keyFlag] = false;
-         return true;
-      }
-      else
-      {
-         game.world.currentBoard.setMessage("The " + KeyColors[keyFlag] + " door is locked.");
-         game.audio.play("t--gc");
-         return false;
-      }
+      console.log("this door's an invalid color!");
+      return false;
    }
 
-   return false;
+   if (doorUnlocked)
+   {
+      game.world.currentBoard.setMessage("The " + KeyColors[keyColor] + " door is now open!");
+      game.audio.play("tcgbcgb+ic");
+      return true;
+   }
+   else
+   {
+      game.world.currentBoard.setMessage("The " + KeyColors[keyColor] + " door is locked.");
+      game.audio.play("t--gc");
+      return false;
+   }
 }
 
 function Scroll() {}
