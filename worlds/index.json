@@ -1,4 +1,5 @@
 { "worlds": [
+{ "file": "basetest.zzt", "shortname": "BASETEST", "name": "Behavior And Side Effect Test" },
 { "file": "caves.zzt", "shortname": "CAVES", "name": "The Caves of ZZT" },
 { "file": "city.zzt", "shortname": "CITY", "name": "Underground City of ZZT" },
 { "file": "demo.zzt", "shortname": "DEMO", "name": "Demo of the ZZT World Editor" },
