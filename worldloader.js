@@ -122,7 +122,7 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
    board.playerEnterY = stream.getUint8();
    board.timeLimit = stream.getInt16();
    stream.position += 16; /* unused */
-   var statusElementCount = stream.getInt16();
+   var statusElementCount = stream.getInt16() + 1;
 
    var statusElement = [];
    for (var i = 0; i < statusElementCount; ++i)
@@ -136,6 +136,9 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
    }
 
    /* now, inject the information from the status elements into the appropriate tiles. */
+   /* TODO: I think this is incorrect. Based on forum posts, it seems that the stat
+      order actually is significant for entity evaluation order, it doesn't just go
+      top-left-to-bottom-right like I have it now. :/ */
 
    /* now turn these into objects */
    for (var i = 0; i < statusElementCount; ++i)
@@ -148,6 +151,8 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
 
       if (obj.setParams)
          obj.setParams(statusElement[i]);
+
+      obj.statIndex = i;
 
       /* handle all the 'below' layers too */
       if (status.underType)
