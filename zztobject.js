@@ -45,6 +45,32 @@ var SpinGlyph = Object.freeze([ 124, 47, 45, 92 ]);
 var SpinGunGlyph = Object.freeze([ 27, 24, 26, 25 ]);
 var KeyColors = [ "black", "blue", "green", "cyan", "red", "purple", "yellow", "white" ];
 
+var applyDirection = function(x, y, dir)
+{
+   if (dir == Direction.NONE)
+      return {x:x, y:y};
+   else if (dir == Direction.NORTH)
+      return {x:x, y:y-1};
+   else if (dir == Direction.SOUTH)
+      return {x:x, y:y+1};
+   else if (dir == Direction.WEST)
+      return {x:x-1, y:y};
+   else if (dir == Direction.EAST)
+      return {x:x+1, y:y};
+}
+
+var genericEnemyMove = function(actorIndex, board, dir)
+{
+   var actorData = board.statusElement[actorIndex];
+   var newPosition = applyDirection(actorData.x, actorData.y, dir);
+   var dstTile = board.get(newPosition.x, newPosition.y);
+   if (dstTile.properties.floor)
+   {
+      board.moveActor(actorIndex, newPosition.x, newPosition.y);
+   }
+   /* else if player or if breakable, attack */
+}
+
 var baseObjectMove = function (board, dir)
 {
    if (dir == Direction.NONE)
@@ -210,432 +236,478 @@ function toward(x1, y1, x2, y2)
    }
 }
 
-function Empty() {}
-Empty.prototype.glyph = 32;
-Empty.prototype.name = "empty";
-
-function Edge() {}
-Edge.prototype.glyph = 69;
-Edge.prototype.name = "";
-
-function Player() {}
-Player.prototype.glyph = 2;
-Player.prototype.name = "player";
-Player.prototype.color = VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE;
-
-function Ammo() {}
-Ammo.prototype.glyph = 132;
-Ammo.prototype.name = "ammo";
-Ammo.prototype.color = VGA.ATTR_FG_CYAN;
-Ammo.prototype.takeItem = function()
+var Empty =
 {
-   if (!game.world.hasGotAmmoMsg)
-   {
-      game.world.currentBoard.setMessage("Ammunition - 5 shots per container.");
-      game.world.hasGotAmmoMsg = true;
-   }
+   glyph: 32,
+   name: "empty",
+   floor: true
+};
 
-   game.world.playerAmmo += 5;
-   game.audio.play("tcc#d");
-   return true;
+var Edge =
+{
+   glyph: 69
 }
 
-function Torch() {}
-Torch.prototype.glyph = 157;
-Torch.prototype.name = "torch";
-Torch.prototype.takeItem = function()
+var Player =
 {
-   if (!game.world.hasGotTorchMsg)
+   glyph: 2,
+   name: "player",
+   color: VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE,
+   update: function(board, actorIndex)
    {
-      game.world.currentBoard.setMessage("Torch - used for lighting in the underground.");
-      game.world.hasGotTorchMsg = true;
-   }
+      var walkDirection = Direction.NONE;
 
-   game.world.playerTorches += 1;
-   game.audio.play("tcase");
-   return true;
-}
-
-function Gem() {}
-Gem.prototype.glyph = 4;
-Gem.prototype.name = "gem";
-Gem.prototype.takeItem = function()
-{
-   if (!game.world.hasGotGemMsg)
-   {
-      game.world.currentBoard.setMessage("Gems give you Health!");
-      game.world.hasGotGemMsg = true;
-   }
-
-   game.world.playerGems += 1;
-   game.world.playerHealth += 1;
-   game.world.playerScore += 10;
-   game.audio.play("t+c-gec");
-   return true;
-}
-
-function Key() {}
-Key.prototype.glyph = 12;
-Key.prototype.name = "key";
-Key.prototype.takeItem = function()
-{
-   var keyColor = (this.color & 0x07);
-   var couldGiveKey = false;
-   if (keyColor == 0)
-   {
-      /* The 'black' key is weird. Black keys are technically
-         invalid, and overwrite the space in the player info
-         just before the keys, which happens to give the player
-         256 gems instead. */
-      game.world.playerGems += 256;
-      couldGiveKey = true;
-   }
-   else if (keyColor > 0 && keyColor <= 7)
-   {
-      if (!game.world.playerKeys[keyColor-1])
+      if (game.inputEvent != 0)
       {
+         if (game.inputEvent == ZInputEvent.WALK_NORTH)
+            walkDirection = Direction.NORTH;
+         else if (game.inputEvent == ZInputEvent.WALK_SOUTH)
+            walkDirection = Direction.SOUTH;
+         else if (game.inputEvent == ZInputEvent.WALK_EAST)
+            walkDirection = Direction.EAST;
+         else if (game.inputEvent == ZInputEvent.WALK_WEST)
+            walkDirection = Direction.WEST;
+         else if (game.inputEvent == ZInputEvent.QUIT)
+         {
+            /* ? */
+            goToTitleScreen();
+         }
+
+         game.inputEvent = 0;
+      }
+
+      if (walkDirection != Direction.NONE)
+      {
+         genericEnemyMove(actorIndex, board, walkDirection);
+      }
+   }
+}
+
+var Ammo =
+{
+   glyph: 132,
+   name: "ammo",
+   color: VGA.ATTR_FG_CYAN,
+   takeItem: function()
+   {
+      if (!game.world.hasGotAmmoMsg)
+      {
+         game.world.currentBoard.setMessage("Ammunition - 5 shots per container.");
+         game.world.hasGotAmmoMsg = true;
+      }
+
+      game.world.playerAmmo += 5;
+      game.audio.play("tcc#d");
+      return true;
+   }
+}
+
+var Torch =
+{
+   glyph: 157,
+   name: "torch",
+   takeItem: function()
+   {
+      if (!game.world.hasGotTorchMsg)
+      {
+         game.world.currentBoard.setMessage("Torch - used for lighting in the underground.");
+         game.world.hasGotTorchMsg = true;
+      }
+
+      game.world.playerTorches += 1;
+      game.audio.play("tcase");
+      return true;
+   }
+}
+
+var Gem =
+{
+   glyph: 4,
+   name: "gem",
+   takeItem: function()
+   {
+      if (!game.world.hasGotGemMsg)
+      {
+         game.world.currentBoard.setMessage("Gems give you Health!");
+         game.world.hasGotGemMsg = true;
+      }
+
+      game.world.playerGems += 1;
+      game.world.playerHealth += 1;
+      game.world.playerScore += 10;
+      game.audio.play("t+c-gec");
+      return true;
+   }
+}
+
+var Key =
+{
+   glyph: 12,
+   name: "key",
+   takeItem: function()
+   {
+      var keyColor = (this.color & 0x07);
+      var couldGiveKey = false;
+      if (keyColor == 0)
+      {
+         /* The 'black' key is weird. Black keys are technically
+            invalid, and overwrite the space in the player info
+            just before the keys, which happens to give the player
+            256 gems instead. */
+         game.world.playerGems += 256;
          couldGiveKey = true;
-         game.world.playerKeys[keyColor-1] = true;
       }
-   }
-   else
-   {
-      console.log("this key's an invalid color!");
-      return false;
-   }
-
-   if (!couldGiveKey)
-   {   
-      game.world.currentBoard.setMessage("You already have a " + KeyColors[keyColor] + " key!");
-      game.audio.play("sc-c");
-      return false;
-   }
-   else
-   {
-      game.world.currentBoard.setMessage("You now have the " + KeyColors[keyColor] + " key");
-      game.audio.play("t+cegcegceg+sc");
-      return true;
-   }
-}
-
-function Door() {}
-Door.prototype.glyph = 10;
-Door.prototype.name = "door";
-Door.prototype.takeItem = function()
-{
-   /* A door isn't really an 'item' per se but works similarly--
-      it needs to disappear when the player walks over it, if they
-      have the key. */
-   var keyColor = ((this.color & 0x70) >> 4);
-   var doorUnlocked = false;
-   if (keyColor == 0)
-   {
-      /* Black doors, like black keys, are weird. */
-      if (game.world.playerGems >= 256)
+      else if (keyColor > 0 && keyColor <= 7)
       {
-         game.world.playerGems -= 256;
-         doorUnlocked = true;
+         if (!game.world.playerKeys[keyColor-1])
+         {
+            couldGiveKey = true;
+            game.world.playerKeys[keyColor-1] = true;
+         }
       }
-   }
-   else if (keyColor > 0 && keyColor <= 7)
-   {
-      if (game.world.playerKeys[keyColor-1])
+      else
       {
-         game.world.playerKeys[keyColor-1] = false;
-         doorUnlocked = true;
+         console.log("this key's an invalid color!");
+         return false;
+      }
+
+      if (!couldGiveKey)
+      {   
+         game.world.currentBoard.setMessage("You already have a " + KeyColors[keyColor] + " key!");
+         game.audio.play("sc-c");
+         return false;
+      }
+      else
+      {
+         game.world.currentBoard.setMessage("You now have the " + KeyColors[keyColor] + " key");
+         game.audio.play("t+cegcegceg+sc");
+         return true;
       }
    }
-   else
+}
+
+var Door =
+{
+   glyph: 10,
+   name: "door",
+   takeItem: function()
    {
-      console.log("this door's an invalid color!");
-      return false;
-   }
+      /* A door isn't really an 'item' per se but works similarly--
+         it needs to disappear when the player walks over it, if they
+         have the key. */
+      var keyColor = ((this.color & 0x70) >> 4);
+      var doorUnlocked = false;
+      if (keyColor == 0)
+      {
+         /* Black doors, like black keys, are weird. */
+         if (game.world.playerGems >= 256)
+         {
+            game.world.playerGems -= 256;
+            doorUnlocked = true;
+         }
+      }
+      else if (keyColor > 0 && keyColor <= 7)
+      {
+         if (game.world.playerKeys[keyColor-1])
+         {
+            game.world.playerKeys[keyColor-1] = false;
+            doorUnlocked = true;
+         }
+      }
+      else
+      {
+         console.log("this door's an invalid color!");
+         return false;
+      }
 
-   if (doorUnlocked)
-   {
-      game.world.currentBoard.setMessage("The " + KeyColors[keyColor] + " door is now open!");
-      game.audio.play("tcgbcgb+ic");
-      return true;
-   }
-   else
-   {
-      game.world.currentBoard.setMessage("The " + KeyColors[keyColor] + " door is locked.");
-      game.audio.play("t--gc");
-      return false;
-   }
-}
-
-function Scroll() {}
-Scroll.prototype.glyph = 232;
-Scroll.prototype.name = "scroll";
-
-function Passage() {}
-Passage.prototype.setParams = function(status)
-{
-   this.destinationBoard = status.param3;
-}
-Passage.prototype.glyph = 240;
-Passage.prototype.name = "passage";
-
-function Duplicator() {}
-Duplicator.prototype.setParams = function(status)
-{
-   this.srcRelX = status.xStep;
-   this.srcRelY = status.yStep;
-   this.rate = status.param2;
-}
-Duplicator.prototype.glyph = 250;
-Duplicator.prototype.name = "duplicator";
-
-function Bomb() {}
-Bomb.prototype.glyph = 11;
-Bomb.prototype.name = "bomb";
-
-function Energizer() {}
-Energizer.prototype.glyph = 127;
-Energizer.prototype.name = "energizer";
-
-function Throwstar() {}
-Throwstar.prototype.setParams = function(status)
-{
-   this.xStep = status.xStep;
-   this.yStep = status.yStep;
-   this.cycle = status.cycle;
-   this.playerOwned = (status.param1 == 0);
-}
-Throwstar.prototype.glyph = 47;
-Throwstar.prototype.name = "star";
-
-function CWConveyor()
-{
-   this.animIndex = 0;
-}
-CWConveyor.prototype.glyph = 179;
-CWConveyor.prototype.name = "clockwise";
-CWConveyor.prototype.update = function()
-{
-   this.animIndex++;
-   this.animIndex %= 4;
-   this.glyph = SpinGlyph[this.animIndex];
-
-   /* also needs to rotate objects */   
-}
-
-function CCWConveyor()
-{
-   this.animIndex = 0;
-}
-CCWConveyor.prototype.glyph = 92;
-CCWConveyor.prototype.name = "counter";
-CCWConveyor.prototype.update = function()
-{
-   if (this.animIndex == 0)
-      this.animIndex = 3;
-   else
-      this.animIndex--;
-   this.glyph = SpinGlyph[this.animIndex];
-
-   /* also needs to rotate objects */
-}
-
-function Bullet() {}
-/* Bullets work the same way as stars. */
-Bullet.prototype.setParams = Throwstar.prototype.setParams;
-Bullet.prototype.glyph = 248;
-Bullet.prototype.name = "bullet";
-
-function Water() {}
-Water.prototype.glyph = 176;
-Water.prototype.name = "water";
-
-function Forest() {}
-Forest.prototype.glyph = 176;
-Forest.prototype.name = "forest";
-
-function SolidWall() {}
-SolidWall.prototype.glyph = 219;
-SolidWall.prototype.name = "solid";
-
-function NormalWall() {}
-NormalWall.prototype.glyph = 178;
-NormalWall.prototype.name = "normal";
-
-function BreakableWall() {}
-BreakableWall.prototype.glyph = 177;
-BreakableWall.prototype.name = "breakable";
-
-function Boulder() {}
-Boulder.prototype.glyph = 254;
-Boulder.prototype.name = "boulder";
-
-function SliderNS() {}
-SliderNS.prototype.glyph = 18;
-SliderNS.prototype.name = "sliderns";
-
-function SliderEW() {}
-SliderEW.prototype.glyph = 29;
-SliderEW.prototype.name = "sliderew";
-
-function FakeWall() {}
-FakeWall.prototype.glyph = 178;
-FakeWall.prototype.name = "fake";
-
-function InvisibleWall() {}
-InvisibleWall.prototype.glyph = 176;
-InvisibleWall.prototype.name = "invisible";
-
-function BlinkWall() {}
-BlinkWall.prototype.glyph = 206;
-BlinkWall.prototype.name = "blinkwall";
-
-function Transporter() {}
-Transporter.prototype.glyph = 60;
-Transporter.prototype.name = "transporter";
-
-function Line() {}
-Line.prototype.glyph = 250;
-Line.prototype.name = "line";
-
-function Ricochet() {}
-Ricochet.prototype.glyph = 42;
-Ricochet.prototype.name = "ricochet";
-
-function HorizBlinkWallRay() {}
-HorizBlinkWallRay.prototype.glyph = 205;
-HorizBlinkWallRay.prototype.name = "(horizontal blink wall ray)";
-
-function Bear() {}
-Bear.prototype.setParams = function(status)
-{
-   this.cycle = status.cycle;
-   this.sensitivity = status.param1;
-}
-Bear.prototype.glyph = 153;
-Bear.prototype.name = "bear";
-
-function Ruffian() {}
-Ruffian.prototype.setParams = function(status)
-{
-   this.cycle = status.cycle;
-   this.intelligence = status.param1;
-   this.restTime = status.param2;
-}
-Ruffian.prototype.glyph = 5;
-Ruffian.prototype.name = "ruffian";
-
-function ZObject() {}
-ZObject.prototype.setParams = function(status)
-{
-   this.glyph = status.param1;
-   this.code = status.code;
-}
-ZObject.prototype.glyph = 2;
-ZObject.prototype.name = "object";
-
-function Slime() {}
-Slime.prototype.glyph = 42;
-Slime.prototype.name = "slime";
-
-function Shark() {}
-Shark.prototype.glyph = 94;
-Shark.prototype.name = "shark";
-
-function SpinningGun()
-{
-   this.animIndex = 0;
-}
-SpinningGun.prototype.getParams = function(status)
-{
-   this.cycle = status.cycle;
-   this.intelligence = status.param1;
-   this.fireRate = status.param2 & 0x7F;
-   this.fireStars = ((status.param2 & 0x80) == 0x80);
-}
-SpinningGun.prototype.glyph = 24;
-SpinningGun.prototype.name = "spinninggun";
-SpinningGun.prototype.update = function()
-{
-   this.animIndex++;
-   this.animIndex %= 4;
-   this.glyph = SpinGunGlyph[this.animIndex];
-
-   /* also need to do some shootin' */
-}
-
-function Pusher() {}
-Pusher.prototype.glyph = 31;
-Pusher.prototype.name = "pusher";
-
-function Lion() {}
-Lion.prototype.setParams = function(status)
-{
-   this.cycle = status.cycle;
-   this.intelligence = status.param1;
-}
-Lion.prototype.glyph = 234;
-Lion.prototype.name = "lion";
-Lion.prototype.update = function(board)
-{
-   if (board.player != null && getRandomInt(0,9) < this.intelligence)
-   {
-      this.move(board, toward(this.x, this.y, board.player.x, board.player.y));
-   }
-   else
-   {
-      this.move(board, Direction.random());
+      if (doorUnlocked)
+      {
+         game.world.currentBoard.setMessage("The " + KeyColors[keyColor] + " door is now open!");
+         game.audio.play("tcgbcgb+ic");
+         return true;
+      }
+      else
+      {
+         game.world.currentBoard.setMessage("The " + KeyColors[keyColor] + " door is locked.");
+         game.audio.play("t--gc");
+         return false;
+      }
    }
 }
 
-function Tiger() {}
-Tiger.prototype.glyph = 227;
-Tiger.prototype.name = "tiger";
+var Scroll =
+{
+   glyph: 232,
+   name: "scroll"
+}
 
-function VertBlinkWallRay() {}
-VertBlinkWallRay.prototype.glyph = 186;
-VertBlinkWallRay.prototype.name = "(vertical blink wall ray)";
+/* Passages use P3 for destination board */
+var Passage =
+{
+   glyph: 240,
+   name: "passage"
+}
 
-function CentipedeHead() {}
-CentipedeHead.prototype.glyph = 233;
-CentipedeHead.prototype.name = "head";
+/* xstep/ystep are relative coords for source, rate is P2 */
+var Duplicator =
+{
+   glyph: 250,
+   name: "duplicator"
+}
 
-function CentipedeBody() {}
-CentipedeBody.prototype.glyph = 79;
-CentipedeBody.prototype.name = "segment";
+var Bomb =
+{
+   glyph: 11,
+   name: "bomb"
+}
 
-function BlueText() {}
-BlueText.prototype.name = "(blue text)";
-BlueText.prototype.color = VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE;
-BlueText.prototype.flags = ObjectFlags.TEXT;
+var Energizer =
+{
+   glyph: 127,
+   name: "energizer"
+}
 
-function GreenText() {}
-GreenText.prototype.name = "(green text)";
-GreenText.prototype.color = VGA.ATTR_BG_GREEN|VGA.ATTR_FG_WHITE;
-GreenText.prototype.flags = ObjectFlags.TEXT;
+var Throwstar =
+{
+   glyph: 47,
+   name: "star"
+}
 
-function CyanText() {}
-CyanText.prototype.name = "(cyan text)";
-CyanText.prototype.color = VGA.ATTR_BG_CYAN|VGA.ATTR_FG_WHITE;
-CyanText.prototype.flags = ObjectFlags.TEXT;
+/* uses SpinGlyph for iteration */
+var CWConveyor =
+{
+   glyph: 179,
+   name: "clockwise"
+}
 
-function RedText() {}
-RedText.prototype.name = "(red text)";
-RedText.prototype.color = VGA.ATTR_BG_RED|VGA.ATTR_FG_WHITE;
-RedText.prototype.flags = ObjectFlags.TEXT;
+/* uses SpinGlyph for iteration, backwards */
+var CCWConveyor =
+{
+   glyph: 92,
+   name: "counter"
+}
 
-function PurpleText() {}
-PurpleText.prototype.name = "(purple text)";
-PurpleText.prototype.color = VGA.ATTR_BG_MAGENTA|VGA.ATTR_FG_WHITE;
-PurpleText.prototype.flags = ObjectFlags.TEXT;
+var Bullet =
+{
+   glyph: 248,
+   name: "bullet"
+}
 
-function YellowText() {}
-YellowText.prototype.name = "(yellow text)";
-YellowText.prototype.color = VGA.ATTR_BG_BROWN|VGA.ATTR_FG_WHITE;
-YellowText.prototype.flags = ObjectFlags.TEXT;
+var Water =
+{
+   glyph: 176,
+   name: "water"
+}
 
-function WhiteText() {}
-WhiteText.prototype.name = "(white text)";
-WhiteText.prototype.color = VGA.ATTR_BG_WHITE|VGA.ATTR_FG_WHITE;
-WhiteText.prototype.flags = ObjectFlags.TEXT;
+var Forest =
+{
+   glyph: 176,
+   name: "forest"
+}
+
+var SolidWall =
+{
+   glyph: 219,
+   name: "solid"
+}
+
+var NormalWall =
+{
+   glyph: 178,
+   name: "normal"
+}
+
+var BreakableWall =
+{
+   glyph: 177,
+   name: "breakable"
+}
+
+var Boulder =
+{
+   glyph: 254,
+   name: "boulder"
+}
+
+var SliderNS =
+{
+   glyph: 18,
+   name: "sliderns"
+}
+
+var SliderEW =
+{
+   glyph: 29,
+   name: "sliderew"
+}
+
+var FakeWall =
+{
+   glyph: 178,
+   name: "fake",
+   floor: true
+}
+
+var InvisibleWall =
+{
+   glyph: 176,
+   name: "invisible"
+}
+
+var BlinkWall =
+{
+   glyph: 206,
+   name: "blinkwall"
+}
+
+var Transporter =
+{
+   glyph: 60,
+   name: "transporter"
+}
+
+var Line =
+{
+   glyph: 250,
+   name: "line"
+}
+
+var Ricochet =
+{
+   glyph: 42,
+   name: "ricochet"
+}
+
+var HorizBlinkWallRay =
+{
+   glyph: 205
+}
+
+var Bear =
+{
+   glyph: 153,
+   name: "bear"
+}
+
+var Ruffian =
+{
+   glyph: 5,
+   name: "ruffian"   
+}
+
+/* glyph to draw comes from P1 */
+var ZObject =
+{
+   glyph: 2,
+   name: "object",
+   draw: function(board, x, y)
+   {
+      var actor = board.getActorAt(x, y);
+      var tile = board.get(x, y);
+      return { glyph: actor.param1, color: tile.color }
+   }
+}
+
+var Slime =
+{
+   glyph: 42,
+   name: "slime"
+}
+
+var Shark =
+{
+   glyph: 94,
+   name: "shark"
+}
+
+/* animation rotates through SpinGunGlyph */
+var SpinningGun =
+{
+   glyph: 24,
+   name: "spinninggun"
+}
+
+var Pusher =
+{
+   glyph: 31,
+   name: "pusher"
+}
+
+var Lion =
+{
+   glyph: 234,
+   name: "lion",
+   update: function(board, actorIndex)
+   {
+      var dir = Direction.random();
+      genericEnemyMove(actorIndex, board, dir);
+   }
+}
+
+var Tiger =
+{
+   glyph: 227,
+   name: "tiger"
+}
+
+var VertBlinkWallRay =
+{
+   glyph: 186
+}
+
+var CentipedeHead =
+{
+   glyph: 233,
+   name: "head"
+}
+
+var CentipedeBody =
+{
+   glyph: 79,
+   name: "segment"
+}
+
+var BlueText =
+{
+   color: VGA.ATTR_BG_BLUE|VGA.ATTR_FG_WHITE,
+   isText: true
+}
+
+var GreenText =
+{
+   color: VGA.ATTR_BG_GREEN|VGA.ATTR_FG_WHITE,
+   isText: true
+}
+
+var CyanText =
+{
+   color: VGA.ATTR_BG_CYAN|VGA.ATTR_FG_WHITE,
+   isText: true
+}
+
+var RedText =
+{
+   color: VGA.ATTR_BG_RED|VGA.ATTR_FG_WHITE,
+   isText: true
+}
+
+var PurpleText =
+{
+   color: VGA.ATTR_BG_MAGENTA|VGA.ATTR_FG_WHITE,
+   isText: true
+}
+
+var YellowText =
+{
+   color: VGA.ATTR_BG_BROWN|VGA.ATTR_FG_WHITE,
+   isText: true
+}
+
+var WhiteText =
+{
+   color: VGA.ATTR_FG_WHITE,
+   isText: true
+}
 
 var BoardObjects = [
    Empty,
@@ -695,55 +767,33 @@ var BoardObjects = [
    null
 ];
 
-function makeBoardObject(boardObjectType, color)
-{
-   if (boardObjectType < 0 ||
-       boardObjectType > BoardObjects.length ||
-       BoardObjects[boardObjectType] == null)
-   {
-      console.log("invalid board object type " + boardObjectType);
-      return null;
-   }
-
-   var obj = new BoardObjects[boardObjectType]({});
-   obj.objectTypeID = boardObjectType;
-   obj.color = color;
-   obj.hasUpdated = false;
-
-   if (!obj.move)
-      obj.move = baseObjectMove;
-
-   return obj;
-}
-
 function getTileRenderInfo(tile)
 {
-   if (tile.objectTypeID > BoardObjects.length)
-      console.log("invalid element type");
-
    /* specific check for zero here because town.zzt has some 'empty' cells marked w/color,
       possible editor corruption? */
-   if (BoardObjects[tile.objectTypeID] == null || tile.objectTypeID == 0)
-      return { glyph: BoardObjects[0].prototype.glyph, color: BoardObjects[0].prototype.color }
+   if (tile.typeid == 0 || !tile.properties)
+      return { glyph: Empty.glyph, color: Empty.color }
 
-   if (BoardObjects[tile.objectTypeID].prototype.flags & ObjectFlags.TEXT)
+   if (tile.properties.isText)
    {
       /* For text, the tile's 'color' is the glyph, and the element type determines the color. */
-      return { glyph: tile.color, color: BoardObjects[tile.objectTypeID].prototype.color };
+      return { glyph: tile.color, color: tile.properties.color };
    }
    else
    {
-      return { glyph: tile.glyph, color: tile.color }
+      return { glyph: tile.properties.glyph, color: tile.color }
    }
 }
 
-function getNameForType(objectTypeID)
+function getNameForType(typeid)
 {
-   if (objectTypeID > BoardObjects.length)
+   if (typeid > BoardObjects.length)
       console.log("invalid element type");
 
-   if (BoardObjects[objectTypeID] == null)
+   if (BoardObjects[typeid] == null)
       return "(unknown)";
+   else if (BoardObjects[typeid].name)
+      return BoardObjects[typeid].name;
    else
-      return BoardObjects[objectTypeID].prototype.name;
+      return "";
 }

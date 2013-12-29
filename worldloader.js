@@ -90,23 +90,10 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
 
       for (var i = 0; i < count; ++i)
       {
-         var tileIndex = tiles.length;
-         var obj = makeBoardObject(typeid, color);
-
-         /* TODO: should each object also maintain its own x/y? */
-         /* I feel like that'll complicate things... */
-         obj.x = (tileIndex % board.width);
-         obj.y = Math.floor(tileIndex / board.width);
-         tiles.push(obj);
-
-         if (obj.name == "player" && board.player == null)
-         {
-            board.player = obj;
-         }
+         tiles.push(makeTile(typeid, color));
       }
    }
    board.tiles = tiles;
-   board.tilesBelow = new Array(tiles.length);
 
    /* following the RLE data, we then have... */
    board.maxPlayerShots = stream.getUint8();
@@ -135,34 +122,7 @@ ZZTWorldLoader.prototype.parseZZTBoard = function(stream)
          statusElement[i].code = this.statusElement[-this.statusElement[i].codeLength].code;
    }
 
-   /* now, inject the information from the status elements into the appropriate tiles. */
-   /* TODO: I think this is incorrect. Based on forum posts, it seems that the stat
-      order actually is significant for entity evaluation order, it doesn't just go
-      top-left-to-bottom-right like I have it now. :/ */
-
-   /* now turn these into objects */
-   for (var i = 0; i < statusElementCount; ++i)
-   {
-      /* town.zzt's board 19 contains an element at (-1,-1)? */
-      if (statusElement[i].y < 0 || statusElement[i].x < 0)
-         continue;
-      var tileIndex = statusElement[i].y * 60 + statusElement[i].x;
-      var obj = board.tiles[tileIndex];
-
-      if (obj.setParams)
-         obj.setParams(statusElement[i]);
-
-      obj.statIndex = i;
-
-      /* handle all the 'below' layers too */
-      if (status.underType)
-      {
-         var underObj = makeBoardObject(status.underType, status.underColor);
-         underObj.x = statusElement[i].x;
-         underObj.y = statusElement[i].y;
-         board.tilesBelow[tileIndex] = underObj;
-      }
-   }
+   board.statusElement = statusElement;
 
    /* update all the line characters */
    board.updateLines();
@@ -191,8 +151,9 @@ ZZTWorldLoader.prototype.parseStatusElement = function(stream)
 
    status.follower = stream.getInt16();
    status.leader = stream.getInt16();
-   status.underType = stream.getUint8();
-   status.underColor = stream.getUint8();
+   var underType = stream.getUint8();
+   var underColor = stream.getUint8();
+   status.underTile = makeTile(underType, underColor);
    stream.position += 4; /* pointer is not used when loading */
    status.currentInstruction = stream.getInt16();
    status.codeLength = stream.getInt16();
