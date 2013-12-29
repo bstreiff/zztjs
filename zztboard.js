@@ -1,61 +1,132 @@
 'use strict';
 
-function ZZTBoard() {}
+function ZZTTile(typeid, color)
+{
+   this.typeid = typeid;
+   this.color = color;
+   this.properties = BoardObjects[this.typeid];
+}
+
+var _ZZTBoard_BoardEmpty = new ZZTTile(0, 0);
+var _ZZTBoard_BoardEdge = new ZZTTile(1, 0);
+
+/* Construct a tile, with a special case for empties: empty tiles have no color,
+   so we can reuse the same reference for all of them. */
+function makeTile(typeid, color)
+{
+   if (typeid == 0)
+      return _ZZTBoard_BoardEmpty;
+   else
+      return new ZZTTile(typeid, color);
+}
+
+function ZZTBoard()
+{
+   this.actorIndex = 0;
+   this.tick = 0;
+}
+
+ZZTBoard.prototype.withinBoard = function(x, y)
+{
+   if (x < 0 || x >= this.width || y < 0 || y >= this.height)
+      return false;
+   else
+      return true;
+}
 
 ZZTBoard.prototype.get = function(x, y)
 {
-   return this.tiles[y * this.width + x];
+   if (!this.withinBoard(x, y))
+      return _ZZTBoard_BoardEdge;
+   else
+      return this.tiles[y * this.width + x];
 }
 
-ZZTBoard.prototype.set = function(x, y, obj)
+ZZTBoard.prototype.getActorIndexAt = function(x, y)
 {
-  this.tiles[y * this.width + x] = obj;
+   for (var i = 0; i < this.statusElement.length; ++i)
+   {
+      if (this.statusElement[i].x == x && this.statusElement[i].y == y)
+         return i;
+   }
+   return -1;
+}
+
+ZZTBoard.prototype.getActorAt = function(x, y)
+{
+   var index = this.getActorIndexAt(x, y);
+   if (index >= 0)
+      return this.statusElement[index];
+   else
+      return null;
+}
+
+ZZTBoard.prototype.set = function(x, y, tile)
+{
+   this.tiles[y * this.width + x] = tile;
 }
 
 ZZTBoard.prototype.update = function()
 {
    var self = this;
 
-   /* Make sure everybody's where they think they are. */
-   for (var y = 0; y < this.height; ++y)
+   if (this.actorIndex >= this.statusElement.length)
    {
-      for (var x = 0; x < this.width; ++x)
-      {
-         var tile = this.get(x, y);
-         if (tile.x != x || tile.y != y)
-         {
-            console.log("object at [" + x + ", " + y +
-               "] thinks it's at [" + tile.x + ", " + y + "], fixing.");
-            tile.x = x;
-            tile.y = y;
-         }
-      }
-   }   
-
-   /* Now, update them. */
-   for (var y = 0; y < this.height; ++y)
-   {
-      for (var x = 0; x < this.width; ++x)
-      {
-         var tile = this.get(x, y);
-
-         if (tile.update && tile.hasUpdated == false)
-         {
-            tile.update(this);
-            tile.hasUpdated = true;
-         }
-      }
+      this.tick++;
+      /* According to roton the tick counter wraps at 420. */
+      if (this.tick > 420)
+         this.tick = 1;
+      this.actorIndex = 0;
    }
 
-   /* clear the update flag */
-   for (var y = 0; y < this.height; ++y)
+   while (this.actorIndex < this.statusElement.length)
    {
-      for (var x = 0; x < this.width; ++x)
+      var actor = this.statusElement[this.actorIndex];
+      var cycle = actor.cycle;
+      if (cycle != 0)
       {
-         var tile = this.get(x, y);
-         tile.hasUpdated = false;
+         if (!(this.tick % cycle))
+         {
+            var tile = this.get(actor.x, actor.y);
+            if (tile.properties.update)
+               tile.properties.update(this, this.actorIndex);
+         }
       }
+      this.actorIndex++;
    }
+}
+
+ZZTBoard.prototype.remove = function(x, y)
+{
+   this.set(x, y, _ZZTBoard_BoardEmpty);
+}
+
+ZZTBoard.prototype.move = function(sx, sy, dx, dy)
+{
+   var actorIndex = this.getActorIndexAt(sx, sy);
+   if (actorIndex < -1)
+   {
+      /* not an actor, just move tile */
+      this.set(dx, dy, this.get(sx, sy));
+      this.remove(sx, sy);
+   }
+   else
+   {
+      this.moveActor(actorIndex, dx, dy);
+   }
+}
+
+ZZTBoard.prototype.moveActor = function(actorIndex, x, y)
+{
+   var actorData = this.statusElement[actorIndex];
+   var srcTile = this.get(actorData.x, actorData.y);
+   var dstTile = this.get(x, y);
+
+   this.set(actorData.x, actorData.y, actorData.underTile);
+   this.set(x, y, srcTile);
+
+   actorData.x = x;
+   actorData.y = y;
 }
 
 ZZTBoard.prototype.draw = function(textconsole)
@@ -65,9 +136,17 @@ ZZTBoard.prototype.draw = function(textconsole)
       for (var x = 0; x < this.width; ++x)
       {
          var tile = this.get(x, y);
+         var renderInfo = null;
 
-         var inf = getTileRenderInfo(tile);
-         textconsole.set(x, y, inf.glyph, inf.color);
+         if (tile.properties.draw)
+         {
+            renderInfo = tile.properties.draw(this, x, y);
+         }
+         else
+         {
+            renderInfo = getTileRenderInfo(tile);
+         }
+         textconsole.set(x, y, renderInfo.glyph, renderInfo.color);
       }
    }
 

@@ -53,7 +53,8 @@ var game = {
    quiet: false,
    fps: 9.1032548384,
    debug: true,
-   dialog: null
+   dialog: null,
+   tick: 0
 };
 
 var ZInputEvent = Object.freeze({
@@ -241,6 +242,7 @@ function gameInit(canvas)
                var board = game.world.board[game.world.playerBoard];
                // find the tile at this location
                var tile = board.tiles[event.cellY*60+event.cellX];
+               console.log({x:event.cellX,y:event.cellY});
                console.log(tile);
             }
          }
@@ -260,6 +262,7 @@ function goToTitleScreen()
    game.world.currentBoard = game.world.board[0];
 
    /* remove the player from the title screen */
+   /*
    if (game.world.currentBoard.player)
    {
       var obj = new Empty;
@@ -271,6 +274,7 @@ function goToTitleScreen()
          obj);
       game.world.currentBoard.player = null;
    }
+   */
 
    game.atTitleScreen = true;
 }
@@ -436,35 +440,7 @@ function gameTick()
 
       var board = game.world.currentBoard;
 
-      // handle player input, if any.
-      if (game.inputEvent != 0)
-      {
-         if (game.inputEvent == ZInputEvent.WALK_NORTH)
-         {
-            board.player.move(board, Direction.NORTH);
-         }
-         else if (game.inputEvent == ZInputEvent.WALK_SOUTH)
-         {
-            board.player.move(board, Direction.SOUTH);
-         }
-         else if (game.inputEvent == ZInputEvent.WALK_EAST)
-         {
-            board.player.move(board, Direction.EAST);
-         }
-         else if (game.inputEvent == ZInputEvent.WALK_WEST)
-         {
-            board.player.move(board, Direction.WEST);
-         }
-         else if (game.inputEvent == ZInputEvent.QUIT)
-         {
-            /* TODO: should prompt...
-               also should probably reload the .zzt file? */
-            goToTitleScreen();
-         }
-
-         /* clear */
-         game.inputEvent = 0;
-      }
+      game.tick++;
 
       // now, iterate through all objects on the board and update them
       board.update();
