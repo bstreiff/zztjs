@@ -256,6 +256,14 @@ var Player =
    update: function(board, actorIndex)
    {
       var walkDirection = Direction.NONE;
+      // get player position
+      var pos;
+      game.world.currentBoard.tiles.forEach(function(el, ind) { 
+        if (el.typeid === 4) { pos = ind; }
+      });
+
+      this.y = Math.floor(pos / 60);
+      this.x = pos % 60;
 
       if (game.inputEvent != 0)
       {
@@ -278,7 +286,73 @@ var Player =
 
       if (walkDirection != Direction.NONE)
       {
-         genericEnemyMove(actorIndex, board, walkDirection);
+         var oldX = this.x;
+         var oldY = this.y;
+         var newX = this.x;
+         var newY = this.y;
+
+         if (walkDirection == Direction.NORTH)
+            --newY;
+         else if (walkDirection == Direction.SOUTH)
+            ++newY;
+         else if (walkDirection == Direction.EAST)
+            ++newX;
+         else if (walkDirection == Direction.WEST)
+            --newX;
+
+         // If the player is trying to move off the edge, then we might need to switch
+         // boards...
+         //
+         // TODO: Does this belong here in move()?
+        var boardSwitch = false;
+        var newBoardID = 0;
+        if (newY < 0 && board.exitNorth > 0)
+        {
+           newBoardID = board.exitNorth;
+           boardSwitch = true;
+        }
+        else if (newY >= board.height && board.exitSouth > 0)
+        {
+           newBoardID = board.exitSouth;
+           boardSwitch = true;
+        }
+        else if (newX < 0 && board.exitWest > 0)
+        {
+           newBoardID = board.exitWest;
+           boardSwitch = true;
+        }
+        else if (newX >= board.width && board.exitEast > 0)
+        {
+           newBoardID = board.exitEast;
+           boardSwitch = true;
+        }
+
+        if (boardSwitch)
+        {
+           /* Correct newX/newY for the fact that we've crossed boards */
+
+           var newBoard = game.world.board[newBoardID];
+
+           if (newX < 0)
+              newX = newBoard.width - 1;
+           else if (newX >= board.width)
+              newX = 0;
+
+           if (newY < 0)
+              newY = newBoard.height - 1;
+           else if (newY >= board.height)
+              newY = 0;
+
+           /* make this the new current board and move the player there */
+           game.world.playerBoard = newBoardID;
+           game.world.currentBoard = newBoard;
+           game.world.currentBoard.moveActor(actorIndex, newX, newY);
+
+           return true;
+        }
+        else {
+          genericEnemyMove(actorIndex, board, walkDirection);
+        }
       }
    }
 }
